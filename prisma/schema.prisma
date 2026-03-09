@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────
+
+enum Role {
+  OUVRIER
+  CHEF_CHANTIER
+}
+
+enum StatutChantier {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  SUSPENDU
+}
+
+enum TypePhoto {
+  AVANT
+  APRES
+}
+
+enum FormatExport {
+  CSV
+  PDF
+}
+
+// ─── Utilisateur ──────────────────────────────────────────────
+
+model Utilisateur {
+  id        String   @id @default(uuid())
+  nom       String
+  email     String   @unique
+  role      Role     @default(OUVRIER)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  affectations   AffectationChantier[]
+  photosPrises   Photo[]               @relation("PhotoPrise")
+  chantiersCreés Chantier[]            @relation("ChantierCreePar")
+  exports        RapportExport[]
+
+  @@map("utilisateurs")
+}
+
+// ─── Adresse ──────────────────────────────────────────────────
+
+model Adresse {
+  id         String @id @default(uuid())
+  rue        String
+  numero     String
+  codePostal String @map("code_postal")
+  ville      String
+  pays       String
+
+  chantiers Chantier[]
+
+  @@map("adresses")
+}
+
+// ─── Client ───────────────────────────────────────────────────
+
+model Client {
+  id        String  @id @default(uuid())
+  nom       String
+  telephone String?
+  email     String?
+
+  chantiers Chantier[]
+
+  @@map("clients")
+}
+
+// ─── Chantier ─────────────────────────────────────────────────
+
+model Chantier {
+  id              String         @id @default(uuid())
+  titre           String
+  description     String?        @db.Text
+  statut          StatutChantier @default(EN_ATTENTE)
+  dateDebutPrevue DateTime       @map("date_debut_prevue") @db.Date
+  dateFinPrevue   DateTime?      @map("date_fin_prevue")   @db.Date
+  createdAt       DateTime       @default(now())           @map("created_at")
+
+  clientId    String      @map("id_client")
+  adresseId   String      @map("id_adresse")
+  createdById String      @map("created_by")
+
+  client    Client      @relation(fields: [clientId],    references: [id])
+  adresse   Adresse     @relation(fields: [adresseId],   references: [id])
+  createdBy Utilisateur @relation("ChantierCreePar", fields: [createdById], references: [id])
+
+  affectations   AffectationChantier[]
+  photos         Photo[]
+  rapports       RapportExport[]
+  meteoSnapshots MeteoSnapshot[]
+
+  @@map("chantiers")
+}
+
+// ─── AffectationChantier ──────────────────────────────────────
+
+model AffectationChantier {
+  id              String    @id @default(uuid())
+  roleSurChantier Role      @map("role_sur_chantier")
+  dateDebut       DateTime  @map("date_debut") @db.Date
+  dateFin         DateTime? @map("date_fin")   @db.Date
+
+  chantierId String      @map("id_chantier")
+  userId     String      @map("id_user")
+
+  chantier Chantier    @relation(fields: [chantierId], references: [id])
+  user     Utilisateur @relation(fields: [userId],     references: [id])
+
+  @@map("affectations_chantier")
+}
+
+// ─── Photo ────────────────────────────────────────────────────
+
+model Photo {
+  id          String    @id @default(uuid())
+  takenAt     DateTime  @default(now()) @map("taken_at")
+  type        TypePhoto
+  storagePath String    @map("storage_path") @db.Text
+  commentaire String?   @db.Text
+
+  chantierId String      @map("id_chantier")
+  takenById  String      @map("taken_by")
+
+  chantier Chantier    @relation(fields: [chantierId], references: [id])
+  takenBy  Utilisateur @relation("PhotoPrise", fields: [takenById], references: [id])
+
+  @@map("photos")
+}
+
+// ─── RapportExport ────────────────────────────────────────────
+
+model RapportExport {
+  id         String       @id @default(uuid())
+  exportedAt DateTime     @default(now()) @map("exported_at")
+  format     FormatExport
+  type       String
+
+  chantierId   String      @map("id_chantier")
+  exportedById String      @map("exported_by")
+
+  chantier   Chantier    @relation(fields: [chantierId],   references: [id])
+  exportedBy Utilisateur @relation(fields: [exportedById], references: [id])
+
+  @@map("rapports_export")
+}
+
+// ─── MeteoSnapshot ────────────────────────────────────────────
+
+model MeteoSnapshot {
+  id           String   @id @default(uuid())
+  dateSnapshot DateTime @map("date_snapshot") @db.Date
+  source       String
+  payload      String   @db.Text
+
+  chantierId String   @map("id_chantier")
+  chantier   Chantier @relation(fields: [chantierId], references: [id])
+
+  @@map("meteo_snapshots")
+}
+
+
