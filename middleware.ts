@@ -11,27 +11,39 @@ export async function middleware(request: NextRequest) {
       cookies: {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
             response.cookies.set(name, value, options)
-          )
+          })
         },
       },
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { pathname } = request.nextUrl
+  const isPublicRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
 
-  if (!session) {
+  // Non connecté → /login
+  if (!user && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
+
+  // Déjà connecté → /dashboard
+  if (user && isPublicRoute) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // ⚠️ Routes réservées aux Chefs uniquement
+  // Le rôle est vérifié dans les pages Server Components via getCurrentUser()
+  // Le middleware gère uniquement l'authentification (pas le rôle)
+  // car lire la DB dans le middleware est trop lent
 
   return response
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/profil/:path*'
-    // ← login et register ne sont PAS là = pas protégées ✅
-  ]
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|auth/callback|$).*)'],
 }
+
+
