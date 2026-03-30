@@ -53,3 +53,29 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   await prisma.utilisateur.delete({ where: { id } })
   return NextResponse.json({ message: 'Utilisateur supprimé' })
 }
+
+// PATCH /api/users/abc123 → approuver ou refuser
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const me = await getCurrentUser()
+  if (!me) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+  if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
+  const { id } = await params
+  const { action } = await req.json()
+
+  if (action === 'approuver') {
+    const user = await prisma.utilisateur.update({
+      where: { id },
+      data: { approuve: true }
+    })
+    return NextResponse.json(user)
+  }
+
+  if (action === 'refuser') {
+    // Supprime le profil PostgreSQL + le compte Supabase Auth
+    await prisma.utilisateur.delete({ where: { id } })
+    return NextResponse.json({ message: 'Compte refusé et supprimé' })
+  }
+
+  return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
+}

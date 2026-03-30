@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -9,9 +10,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
@@ -24,13 +23,36 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
-  const isPublicRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
 
+  const isPublicRoute = pathname.startsWith('/login') ||
+                        pathname.startsWith('/register') ||
+                        pathname.startsWith('/attente-validation') ||
+                        pathname.startsWith('/auth/callback')
+
+  // Pas connecté → login
   if (!user && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isPublicRoute) {
+  // Connecté + approuvé → pas besoin de rester sur login/register
+if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
+  return NextResponse.redirect(new URL('/dashboard', request.url))
+}
+
+  // Connecté → vérifie approbation
+  if (user && !isPublicRoute) {
+    const profil = await prisma.utilisateur.findUnique({
+      where: { id: user.id },
+      select: { approuve: true }
+    })
+
+    if (!profil?.approuve) {
+      return NextResponse.redirect(new URL('/attente-validation', request.url))
+    }
+  }
+
+  // Connecté + approuvé → pas besoin de rester sur login/register
+  if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
@@ -38,6 +60,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|auth/callback|$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|$).*)'],
 }
 

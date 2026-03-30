@@ -38,8 +38,9 @@ model Utilisateur {
   nom       String
   email     String   @unique
   role      Role     @default(OUVRIER)
+  approuve  Boolean  @default(false) 
   createdAt DateTime @default(now()) @map("created_at")
-
+    
   affectations   AffectationChantier[]
   photosPrises   Photo[]               @relation("PhotoPrise")
   chantiersCreés Chantier[]            @relation("ChantierCreePar")
@@ -168,5 +169,4 @@ model MeteoSnapshot {
 
   @@map("meteo_snapshots")
 }
-
 
