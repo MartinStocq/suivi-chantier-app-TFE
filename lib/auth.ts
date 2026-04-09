@@ -1,53 +1,46 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import prisma from '@/lib/prisma'
-import type { Role } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
-// Récupère le user Supabase + son profil PostgreSQL (avec le rôle)
-export async function getCurrentUser() {
+export async function getSupabaseUser() {
   const cookieStore = await cookies()
 
+  // Client READ-ONLY — ne tente pas de set les cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookieStore.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll() {
+          // Volontairement vide — pas de modification de cookies ici
+          // Les cookies sont rafraîchis uniquement dans le middleware
         },
       },
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) return null
+  return user
+}
 
-  // Récupère le profil depuis PostgreSQL (contient le rôle)
-  const profil = await prisma.utilisateur.findUnique({
-    where: { id: user.id }
+export async function getCurrentUser() {
+  const supabaseUser = await getSupabaseUser()
+  if (!supabaseUser) return null
+
+  const user = await prisma.utilisateur.findUnique({
+    where: { id: supabaseUser.id },
+    select: {
+      id:       true,
+      nom:      true,
+      email:    true,
+      role:     true,
+      approuve: true,
+    }
   })
 
-  if (!profil) return null
-
-  return {
-    id: user.id,
-    email: user.email!,
-    nom: profil.nom,
-    role: profil.role, // 'OUVRIER' | 'CHEF_CHANTIER'
-  }
-}
-
-// Helper : vérifie si le user est Chef
-export async function isChef(): Promise<boolean> {
-  const user = await getCurrentUser()
-  return user?.role === 'CHEF_CHANTIER'
-}
-
-// Helper : vérifie si le user est Ouvrier
-export async function isOuvrier(): Promise<boolean> {
-  const user = await getCurrentUser()
-  return user?.role === 'OUVRIER'
+  return user
 }
