@@ -1,22 +1,130 @@
-import { prisma } from '@/lib/prisma'  // adapte selon ton lib/prisma.ts
-import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server'
+import { StatutChantier } from '@prisma/client'
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const chantier = await prisma.chantier.findUnique({ where: { id } }) // ← string direct
-  if (!chantier) return NextResponse.json({ error: 'Non trouvé' }, { status: 404 })
-  return NextResponse.json(chantier)
+function parseStatut(val: unknown): StatutChantier {
+  const str = String(val ?? '').toUpperCase().replace(/[^A-Z]/g, '')
+  const all = Object.values(StatutChantier)
+  const exact = all.find(v => v === val)
+  if (exact) return exact
+  const fuzzy = all.find(v => v.replace(/_/g, '') === str)
+  return fuzzy ?? all[0]
 }
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const body = await request.json()
-  const chantier = await prisma.chantier.update({ where: { id }, data: body }) // ← string direct
-  return NextResponse.json(chantier)
+// ─── GET /api/chantiers/[id] ──────────────────────────────────────────────────
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const me = await getCurrentUser()
+    if (!me) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+
+    const { id } = await params
+
+    const chantier = await prisma.chantier.findUnique({
+      where: { id },
+      include: {
+        client:      true,
+        adresse:     true,
+        createdBy:   true,
+        affectations: { include: { user: true } },
+        photos:      { orderBy: { takenAt: 'desc' } },
+        _count:      { select: { photos: true, affectations: true } },
+      },
+    })
+
+    if (!chantier) return NextResponse.json({ error: 'Non trouvé' }, { status: 404 })
+    return NextResponse.json(chantier)
+
+  } catch (err) {
+    console.error('[GET /api/chantiers/[id]]', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  await prisma.chantier.delete({ where: { id } }) // ← string direct
-  return NextResponse.json({ message: 'Supprimé' })
+// ─── PUT /api/chantiers/[id] ──────────────────────────────────────────────────
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const me = await getCurrentUser()
+    if (!me)                         return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé'   }, { status: 403 })
+
+    const { id } = await params
+
+    const existing = await prisma.chantier.findUnique({ where: { id }, select: { id: true } })
+    if (!existing) return NextResponse.json({ error: 'Chantier non trouvé' }, { status: 404 })
+
+    const body = await req.json()
+    const { titre, description, statut, dateDebutPrevue, dateFinPrevue, client, adresse } = body
+
+    if (!titre)               return NextResponse.json({ error: 'Le titre est requis'           }, { status: 400 })
+    if (!dateDebutPrevue)     return NextResponse.json({ error: 'La date de début est requise'  }, { status: 400 })
+    if (!client?.nom)         return NextResponse.json({ error: 'Le nom du client est requis'   }, { status: 400 })
+    if (!adresse?.rue)        return NextResponse.json({ error: 'La rue est requise'            }, { status: 400 })
+    if (!adresse?.numero)     return NextResponse.json({ error: 'Le numéro est requis'          }, { status: 400 })
+    if (!adresse?.codePostal) return NextResponse.json({ error: 'Le code postal est requis'    }, { status: 400 })
+    if (!adresse?.ville)      return NextResponse.json({ error: 'La ville est requise'          }, { status: 400 })
+
+    const chantier = await prisma.chantier.update({
+      where: { id },
+      data: {
+        titre,
+        description:     description   ?? null,
+        statut:          parseStatut(statut),
+        dateDebutPrevue: new Date(dateDebutPrevue),
+        dateFinPrevue:   dateFinPrevue ? new Date(dateFinPrevue) : null,
+        client: {
+          update: {
+            nom:       client.nom,
+            telephone: client.telephone ?? null,
+            email:     client.email     ?? null,
+          },
+        },
+        adresse: {
+          update: {
+            rue:        adresse.rue,
+            numero:     adresse.numero,
+            codePostal: adresse.codePostal,
+            ville:      adresse.ville,
+            pays:       adresse.pays    ?? 'Belgique',
+          },
+        },
+      },
+      include: { client: true, adresse: true },
+    })
+
+    return NextResponse.json(chantier)
+
+  } catch (err) {
+    console.error('[PUT /api/chantiers/[id]]', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Erreur serveur' },
+      { status: 500 }
+    )
+  }
+}
+
+// ─── DELETE /api/chantiers/[id] ───────────────────────────────────────────────
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const me = await getCurrentUser()
+    if (!me)                         return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé'   }, { status: 403 })
+
+    const { id } = await params
+    await prisma.chantier.delete({ where: { id } })
+    return NextResponse.json({ message: 'Supprimé' })
+
+  } catch (err) {
+    console.error('[DELETE /api/chantiers/[id]]', err)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
 }

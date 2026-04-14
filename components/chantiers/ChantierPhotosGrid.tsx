@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Photo {
   id: string
-  type: 'AVANT' | 'APRES'
   storagePath: string
+  type: string
 }
 
 interface Props {
@@ -12,36 +13,53 @@ interface Props {
   chantierId: string
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+
+function photoUrl(path: string) {
+  return `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`
+}
+
 export default function ChantierPhotosGrid({ photos, totalPhotos, chantierId }: Props) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-semibold text-gray-900">📷 Photos ({totalPhotos})</h2>
-        <Link href={`/chantiers/${chantierId}/photos`} className="text-sm text-green-600 hover:underline font-medium">
-          {totalPhotos > 6 ? `Voir toutes (${totalPhotos})` : '+ Ajouter'}
+  if (photos.length === 0) {
+    return (
+      <div className="border border-dashed border-gray-200 rounded-lg py-12 text-center">
+        <p className="text-sm text-gray-400 mb-3">Aucune photo pour ce chantier</p>
+        <Link
+          href={`/chantiers/${chantierId}/photos`}
+          className="text-xs font-medium text-gray-700 hover:text-gray-900 transition underline underline-offset-2"
+        >
+          Ajouter des photos
         </Link>
       </div>
+    )
+  }
 
-      {photos.length === 0 ? (
-        <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl">
-          <p className="text-4xl mb-2">📸</p>
-          <p className="text-gray-400 text-sm">Aucune photo pour ce chantier</p>
-          <Link href={`/chantiers/${chantierId}/photos`} className="text-sm text-green-600 hover:underline mt-2 inline-block">
-            Ajouter des photos
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {photos.map(photo => (
-            <div key={photo.id} className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative">
-              <span className={`absolute top-1 left-1 text-xs px-1.5 py-0.5 rounded-full font-medium z-10 ${
-                photo.type === 'AVANT' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
-              }`}>
-                {photo.type}
-              </span>
-            </div>
-          ))}
-        </div>
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        {photos.map((photo) => (
+          <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+            <Image
+              src={photoUrl(photo.storagePath)}
+              alt={photo.type}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 33vw, 200px"
+            />
+            <span className="absolute bottom-1.5 left-1.5 text-xs px-1.5 py-0.5 bg-black/50 text-white rounded font-medium">
+              {photo.type === 'AVANT' ? 'Avant' : 'Après'}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {totalPhotos > 6 && (
+        <Link
+          href={`/chantiers/${chantierId}/photos`}
+          className="block text-center text-xs text-gray-500 hover:text-gray-700 transition font-medium"
+        >
+          Voir toutes les photos ({totalPhotos})
+        </Link>
       )}
     </div>
   )
