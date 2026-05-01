@@ -24,7 +24,8 @@ export default async function Dashboard({
   const total     = stats.reduce((acc, s) => acc + s._count, 0)
   const enCours   = stats.find(s => s.statut === 'EN_COURS')?._count   ?? 0
   const enAttente = stats.find(s => s.statut === 'EN_ATTENTE')?._count ?? 0
-  const termine   = stats.find(s => s.statut === 'TERMINE')?._count    ?? 0
+  const termine   = stats.find(s => s.statut === 'TERMINE')?._count   ?? 0
+  const suspendu  = stats.find(s => s.statut === 'SUSPENDU')?._count  ?? 0
 
   const recentChantiers = await prisma.chantier.findMany({
     take: 5,
@@ -62,12 +63,13 @@ export default async function Dashboard({
       <main className="flex-1 px-8 py-8">
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           {[
             { label: 'Total chantiers', value: total,     color: 'border-gray-200'    },
             { label: 'En cours',        value: enCours,   color: 'border-blue-200'    },
             { label: 'En attente',      value: enAttente, color: 'border-amber-200'   },
             { label: 'Terminés',        value: termine,   color: 'border-emerald-200' },
+            { label: 'Suspendus',       value: suspendu,  color: 'border-red-200'    },
           ].map(({ label, value, color }) => (
             <div key={label} className={`bg-white border ${color} rounded-xl p-5`}>
               <p className="text-2xl font-bold text-gray-900 tabular-nums">{value}</p>
@@ -104,12 +106,12 @@ export default async function Dashboard({
                   <span className={`text-xs px-2 py-0.5 rounded-md border font-medium ${
                     c.statut === 'EN_COURS'   ? 'bg-blue-50 text-blue-700 border-blue-200'          :
                     c.statut === 'EN_ATTENTE' ? 'bg-amber-50 text-amber-700 border-amber-200'       :
-                    c.statut === 'TERMINE'    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    'bg-red-50 text-red-700 border-red-200'
+                    c.statut === 'TERMINE'   ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    'bg-red-50 text-red-600 border-red-200'
                   }`}>
                     {c.statut === 'EN_COURS'   ? 'En cours'   :
                      c.statut === 'EN_ATTENTE' ? 'En attente' :
-                     c.statut === 'TERMINE'    ? 'Terminé'    : 'Suspendu'}
+                     c.statut === 'TERMINE'   ? 'Terminé'    : 'Suspendu'}
                   </span>
                 </Link>
               ))}
