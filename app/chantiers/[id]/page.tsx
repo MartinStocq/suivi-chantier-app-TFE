@@ -5,6 +5,7 @@ import Link from 'next/link'
 import StatutBadge from '@/components/ui/StatutBadge'
 import ChantierEquipe from '@/components/chantiers/ChantierEquipe'
 import ChantierPhotosGrid from '@/components/chantiers/ChantierPhotosGrid'
+import StatutInline from '@/components/chantiers/StatutInline'
 import { ArrowLeft, Pencil, MapPin, User, Calendar, Phone, Mail, Image, Users, ClipboardList } from 'lucide-react'
 
 export default async function ChantierDetailPage({
@@ -20,16 +21,18 @@ export default async function ChantierDetailPage({
   const chantier = await prisma.chantier.findUnique({
     where: { id },
     include: {
-      client:      true,
-      adresse:     true,
-      createdBy:   true,
+      client:       true,
+      adresse:      true,
+      createdBy:    true,
       affectations: { include: { user: true } },
-      photos:      { orderBy: { takenAt: 'desc' }, take: 6 },
-      _count:      { select: { photos: true } },
+      photos:       { orderBy: { takenAt: 'desc' }, take: 6 },
+      _count:       { select: { photos: true } },
     },
   })
 
   if (!chantier) notFound()
+
+  const isChef = user.role === 'CHEF_CHANTIER'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,9 +55,13 @@ export default async function ChantierDetailPage({
               </Link>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-semibold text-gray-900">{chantier.titre}</h1>
-                  <StatutBadge statut={chantier.statut} />
-                </div>
+  <h1 className="text-xl font-semibold text-gray-900">{chantier.titre}</h1>
+  {isChef
+    ? <StatutInline chantierId={chantier.id} statut={chantier.statut} />
+    : <StatutBadge statut={chantier.statut} />
+  }
+</div>
+
                 <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-1">
                   <MapPin size={11} />
                   <span>{chantier.adresse.rue} {chantier.adresse.numero}, {chantier.adresse.ville}</span>
@@ -62,10 +69,11 @@ export default async function ChantierDetailPage({
               </div>
             </div>
 
-            {user.role === 'CHEF_CHANTIER' && (
+            {isChef && (
               <Link
                 href={`/chantiers/${id}/edit`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200
+                           rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition"
               >
                 <Pencil size={12} />
                 Modifier
@@ -102,7 +110,7 @@ export default async function ChantierDetailPage({
                   <span className="ml-1.5 text-gray-400 font-normal">({chantier.affectations.length})</span>
                 </h2>
               </div>
-              {user.role === 'CHEF_CHANTIER' && (
+              {isChef && (
                 <Link
                   href={`/chantiers/${id}/equipe`}
                   className="text-xs text-gray-500 hover:text-gray-900 transition font-medium"
@@ -111,7 +119,7 @@ export default async function ChantierDetailPage({
                 </Link>
               )}
             </div>
-            <ChantierEquipe affectations={chantier.affectations} isChef={user.role === 'CHEF_CHANTIER'} />
+            <ChantierEquipe affectations={chantier.affectations} isChef={isChef} />
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -211,7 +219,8 @@ export default async function ChantierDetailPage({
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Créé par</h2>
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold shrink-0">
+              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center
+                              text-white text-xs font-semibold shrink-0">
                 {chantier.createdBy.nom.charAt(0).toUpperCase()}
               </div>
               <div>
