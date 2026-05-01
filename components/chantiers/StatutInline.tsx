@@ -1,0 +1,83 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { StatutChantier } from '@prisma/client'
+
+const STATUTS: {
+  value: StatutChantier
+  label: string
+  active: string
+  idle: string
+}[] = [
+  {
+    value:  StatutChantier.EN_ATTENTE,
+    label:  'En attente',
+    active: 'bg-amber-100 text-amber-700 border-amber-300 font-semibold',
+    idle:   'bg-white text-gray-400 border-gray-200 hover:border-amber-200 hover:text-amber-600',
+  },
+  {
+    value:  StatutChantier.EN_COURS,
+    label:  'En cours',
+    active: 'bg-blue-100 text-blue-700 border-blue-300 font-semibold',
+    idle:   'bg-white text-gray-400 border-gray-200 hover:border-blue-200 hover:text-blue-600',
+  },
+  {
+    value:  StatutChantier.TERMINE,
+    label:  'Terminé',
+    active: 'bg-emerald-100 text-emerald-700 border-emerald-300 font-semibold',
+    idle:   'bg-white text-gray-400 border-gray-200 hover:border-emerald-200 hover:text-emerald-600',
+  },
+  {
+    value:  StatutChantier.SUSPENDU,
+    label:  'Suspendu',
+    active: 'bg-red-100 text-red-600 border-red-300 font-semibold',
+    idle:   'bg-white text-gray-400 border-gray-200 hover:border-red-200 hover:text-red-500',
+  },
+]
+
+export default function StatutInline({
+  chantierId,
+  statut,
+}: {
+  chantierId: string
+  statut: StatutChantier
+}) {
+  const router = useRouter()
+  const [current, setCurrent] = useState(statut)
+  const [saving,  setSaving]  = useState<StatutChantier | null>(null)
+
+  const handleChange = async (newStatut: StatutChantier) => {
+    if (newStatut === current || saving) return
+    setSaving(newStatut)
+    const res = await fetch(`/api/chantiers/${chantierId}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ statut: newStatut }),
+    })
+    if (res.ok) {
+      setCurrent(newStatut)
+      router.refresh()
+    }
+    setSaving(null)
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {STATUTS.map(s => (
+        <button
+          key={s.value}
+          onClick={() => handleChange(s.value)}
+          disabled={saving !== null}
+          className={[
+            'px-2.5 py-1 rounded-lg border text-xs transition-all',
+            saving === s.value ? 'opacity-50 cursor-wait' : 'cursor-pointer',
+            current === s.value ? s.active : s.idle,
+          ].join(' ')}
+        >
+          {saving === s.value ? '...' : s.label}
+        </button>
+      ))}
+    </div>
+  )
+}

@@ -26,12 +26,12 @@ export async function GET(
     const chantier = await prisma.chantier.findUnique({
       where: { id },
       include: {
-        client:      true,
-        adresse:     true,
-        createdBy:   true,
+        client:       true,
+        adresse:      true,
+        createdBy:    true,
         affectations: { include: { user: true } },
-        photos:      { orderBy: { takenAt: 'desc' } },
-        _count:      { select: { photos: true, affectations: true } },
+        photos:       { orderBy: { takenAt: 'desc' } },
+        _count:       { select: { photos: true, affectations: true } },
       },
     })
 
@@ -51,8 +51,8 @@ export async function PUT(
 ) {
   try {
     const me = await getCurrentUser()
-    if (!me)                         return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé'   }, { status: 403 })
+    if (!me)                           return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (me.role !== 'CHEF_CHANTIER')    return NextResponse.json({ error: 'Accès refusé'    }, { status: 403 })
 
     const { id } = await params
 
@@ -62,13 +62,23 @@ export async function PUT(
     const body = await req.json()
     const { titre, description, statut, dateDebutPrevue, dateFinPrevue, client, adresse } = body
 
-    if (!titre)               return NextResponse.json({ error: 'Le titre est requis'           }, { status: 400 })
-    if (!dateDebutPrevue)     return NextResponse.json({ error: 'La date de début est requise'  }, { status: 400 })
-    if (!client?.nom)         return NextResponse.json({ error: 'Le nom du client est requis'   }, { status: 400 })
-    if (!adresse?.rue)        return NextResponse.json({ error: 'La rue est requise'            }, { status: 400 })
-    if (!adresse?.numero)     return NextResponse.json({ error: 'Le numéro est requis'          }, { status: 400 })
-    if (!adresse?.codePostal) return NextResponse.json({ error: 'Le code postal est requis'    }, { status: 400 })
-    if (!adresse?.ville)      return NextResponse.json({ error: 'La ville est requise'          }, { status: 400 })
+    // ── Mise à jour statut seul (depuis StatutInline) ──────────────────────────
+    if (statut && !titre && !client && !adresse) {
+      const chantier = await prisma.chantier.update({
+        where: { id },
+        data:  { statut: parseStatut(statut) },
+      })
+      return NextResponse.json(chantier)
+    }
+
+    // ── Mise à jour complète (depuis le formulaire d'édition) ──────────────────
+    if (!titre)               return NextResponse.json({ error: 'Le titre est requis'          }, { status: 400 })
+    if (!dateDebutPrevue)     return NextResponse.json({ error: 'La date de début est requise' }, { status: 400 })
+    if (!client?.nom)         return NextResponse.json({ error: 'Le nom du client est requis'  }, { status: 400 })
+    if (!adresse?.rue)        return NextResponse.json({ error: 'La rue est requise'           }, { status: 400 })
+    if (!adresse?.numero)     return NextResponse.json({ error: 'Le numéro est requis'         }, { status: 400 })
+    if (!adresse?.codePostal) return NextResponse.json({ error: 'Le code postal est requis'   }, { status: 400 })
+    if (!adresse?.ville)      return NextResponse.json({ error: 'La ville est requise'         }, { status: 400 })
 
     const chantier = await prisma.chantier.update({
       where: { id },
@@ -91,7 +101,7 @@ export async function PUT(
             numero:     adresse.numero,
             codePostal: adresse.codePostal,
             ville:      adresse.ville,
-            pays:       adresse.pays    ?? 'Belgique',
+            pays:       adresse.pays ?? 'Belgique',
           },
         },
       },
@@ -116,7 +126,7 @@ export async function DELETE(
 ) {
   try {
     const me = await getCurrentUser()
-    if (!me)                         return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+    if (!me)                        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé'   }, { status: 403 })
 
     const { id } = await params
