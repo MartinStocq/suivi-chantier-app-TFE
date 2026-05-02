@@ -1,38 +1,30 @@
-import { supabase } from './supabase'
+import { createBrowserClient } from '@supabase/ssr'
 
-async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.src = URL.createObjectURL(file)
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const MAX = 1200
-      const ratio = Math.min(MAX / img.width, MAX / img.height)
-      canvas.width = img.width * ratio
-      canvas.height = img.height * ratio
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob((blob) => {
-        resolve(new File([blob!], file.name, { type: 'image/jpeg' }))
-      }, 'image/jpeg', 0.7)
-    }
-  })
+function getSupabase() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 }
 
-export const uploadPhoto = async (file: File, chantierId: string): Promise<string> => {
-  const compressed = await compressImage(file)
-  const fileExt = file.name.split('.').pop()
-  const filePath = `chantiers/${chantierId}/${Date.now()}.${fileExt}`
+export async function uploadPhoto(
+  file: File,
+  chantierId: string
+): Promise<string> {
+  const supabase = getSupabase()
+  const ext = file.name.split('.').pop()
+  const path = `chantiers/${chantierId}/${Date.now()}.${ext}`
 
   const { error } = await supabase.storage
     .from('photos')
-    .upload(filePath, compressed)
+    .upload(path, file, { upsert: false })
 
-  if (error) throw error
-
-  return filePath
+  if (error) throw new Error(error.message)
+  return path
 }
 
-export const getPhotoUrl = (storagePath: string): string => {
+export function getPhotoUrl(storagePath: string): string {
+  const supabase = getSupabase()
   const { data } = supabase.storage
     .from('photos')
     .getPublicUrl(storagePath)
