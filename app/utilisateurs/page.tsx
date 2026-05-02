@@ -86,7 +86,7 @@ export default async function EquipePage({
             </div>
 
             <div className="ml-auto">
-              <SearchBar key={q} placeholder="Rechercher par nom ou email..." paramKey="q" />
+              <SearchBar key={q} placeholder="Rechercher par nom ou email.." paramKey="q" />
             </div>
           </div>
 
@@ -103,7 +103,6 @@ export default async function EquipePage({
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Membre</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Rôle</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Chantiers</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -138,12 +137,7 @@ export default async function EquipePage({
                       </span>
                     </td>
 
-                    {/* Chantiers affectés */}
-                    <td className="px-5 py-3.5">
-                      <span className="text-sm text-gray-500 tabular-nums">
-                        {m._count.affectations} chantier{m._count.affectations > 1 ? 's' : ''}
-                      </span>
-                    </td>
+                    
 
                     {/* Actions */}
                     <td className="px-5 py-3.5">
