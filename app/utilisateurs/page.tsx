@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
 import SearchBar from '@/components/SearchBar'
-import ChangerRoleButton    from '@/components/equipe/ChangerRoleButton'
+import ChangerRoleButton from '@/components/equipe/ChangerRoleButton'
 import SupprimerMembreButton from '@/components/equipe/SupprimerMembreButton'
 import { Users, HardHat, Wrench } from 'lucide-react'
 
@@ -35,8 +35,14 @@ export default async function EquipePage({
     include: {
       _count: { select: { affectations: true } }
     },
-    orderBy: [{ role: 'asc' }, { nom: 'asc' }],
+    orderBy: [{ nom: 'asc' }],
   })
+
+  // Chefs en premier, ouvriers ensuite
+  const sorted = [
+    ...membres.filter(m => m.role === 'CHEF_CHANTIER'),
+    ...membres.filter(m => m.role !== 'CHEF_CHANTIER'),
+  ]
 
   const totalOuvriers = await prisma.utilisateur.count({ where: { role: 'OUVRIER',       approuve: true } })
   const totalChefs    = await prisma.utilisateur.count({ where: { role: 'CHEF_CHANTIER', approuve: true } })
@@ -47,15 +53,15 @@ export default async function EquipePage({
 
       <main className="flex-1 px-8 py-8">
 
-        {/* KPIs */}
+        {/* KPIs — Chefs à gauche, Ouvriers à droite */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalOuvriers}</p>
-            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Ouvriers</p>
-          </div>
           <div className="bg-white border border-blue-200 rounded-xl p-5">
             <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalChefs}</p>
             <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Chefs de chantier</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalOuvriers}</p>
+            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Ouvriers</p>
           </div>
         </div>
 
@@ -67,9 +73,9 @@ export default async function EquipePage({
             {/* Filtres */}
             <div className="flex items-center gap-2">
               {[
-                { label: 'Tous',     value: undefined  },
-                { label: 'Ouvriers', value: 'ouvrier'  },
-                { label: 'Chefs',    value: 'chef'     },
+                { label: 'Tous',    value: undefined  },
+                { label: 'Chefs',   value: 'chef'     },
+                { label: 'Ouvriers', value: 'ouvrier' },
               ].map(f => (
                 <a
                   key={f.label}
@@ -90,7 +96,7 @@ export default async function EquipePage({
             </div>
           </div>
 
-          {membres.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="py-16 text-center">
               <Users size={32} className="text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-400">
@@ -107,7 +113,7 @@ export default async function EquipePage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {membres.map(m => (
+                {sorted.map(m => (
                   <tr key={m.id} className="hover:bg-gray-50 transition group">
 
                     {/* Membre */}
@@ -136,8 +142,6 @@ export default async function EquipePage({
                         }
                       </span>
                     </td>
-
-                    
 
                     {/* Actions */}
                     <td className="px-5 py-3.5">
