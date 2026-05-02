@@ -86,7 +86,7 @@ export default async function EquipePage({
             </div>
 
             <div className="ml-auto">
-              <SearchBar key={q} placeholder="Rechercher par nom ou email..." paramKey="q" />
+              <SearchBar key={q} placeholder="Rechercher par nom ou email.." paramKey="q" />
             </div>
           </div>
 
