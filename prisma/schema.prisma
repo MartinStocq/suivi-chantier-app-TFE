@@ -34,13 +34,15 @@ enum FormatExport {
 // ─── Utilisateur ──────────────────────────────────────────────
 
 model Utilisateur {
-  id        String   @id @default(uuid())
-  nom       String
-  email     String   @unique
-  role      Role     @default(OUVRIER)
-  approuve  Boolean  @default(false) 
-  createdAt DateTime @default(now()) @map("created_at")
-    
+  id         String   @id @default(uuid())
+  nom        String
+  email      String   @unique
+  role       Role     @default(OUVRIER)
+  approuve   Boolean  @default(false)
+  telephone  String?
+  avatarPath String?  @map("avatar_path")
+  createdAt  DateTime @default(now()) @map("created_at")
+
   affectations   AffectationChantier[]
   photosPrises   Photo[]               @relation("PhotoPrise")
   chantiersCreés Chantier[]            @relation("ChantierCreePar")
@@ -48,7 +50,6 @@ model Utilisateur {
 
   @@map("utilisateurs")
 }
-
 // ─── Adresse ──────────────────────────────────────────────────
 
 model Adresse {

@@ -19,8 +19,8 @@ type Props = {
 }
 
 const S: Record<string, { pill: string; dot: string; label: string }> = {
-  ENATTENTE: { pill: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400',    label: 'En attente' },
-  ENCOURS:   { pill: 'bg-blue-50 text-blue-700 border-blue-200',          dot: 'bg-blue-500',     label: 'En cours'   },
+  EN_ATTENTE: { pill: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400',    label: 'En attente' },
+  EN_COURS:   { pill: 'bg-blue-50 text-blue-700 border-blue-200',          dot: 'bg-blue-500',     label: 'En cours'   },
   TERMINE:   { pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500',  label: 'Terminé'    },
   SUSPENDU:  { pill: 'bg-red-50 text-red-600 border-red-200',             dot: 'bg-red-400',      label: 'Suspendu'   },
 }

@@ -1,11 +1,13 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
 import SearchBar from '@/components/SearchBar'
-import ChangerRoleButton    from '@/components/equipe/ChangerRoleButton'
+import ChangerRoleButton from '@/components/equipe/ChangerRoleButton'
 import SupprimerMembreButton from '@/components/equipe/SupprimerMembreButton'
+import Avatar from '@/components/ui/Avatar'
 import { Users, HardHat, Wrench } from 'lucide-react'
 
 export default async function EquipePage({
@@ -15,8 +17,8 @@ export default async function EquipePage({
 }) {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
-  if (user.role !== 'CHEF_CHANTIER') redirect('/dashboard')
 
+  const isChef = user.role === 'CHEF_CHANTIER'
   const { q: qRaw, filtre } = await searchParams
   const q = qRaw?.trim() ?? ''
 
@@ -32,30 +34,43 @@ export default async function EquipePage({
       ...(filtre === 'ouvrier' ? { role: 'OUVRIER'       } : {}),
       ...(filtre === 'chef'    ? { role: 'CHEF_CHANTIER' } : {}),
     },
-    include: {
-      _count: { select: { affectations: true } }
+    select: {
+      id:         true,
+      nom:        true,
+      email:      true,
+      role:       true,
+      avatarPath: true,
+      _count: { select: { affectations: true } },
     },
-    orderBy: [{ role: 'asc' }, { nom: 'asc' }],
+    orderBy: [{ nom: 'asc' }],
   })
+
+  const sorted = [
+    ...membres.filter(m => m.role === 'CHEF_CHANTIER'),
+    ...membres.filter(m => m.role !== 'CHEF_CHANTIER'),
+  ]
 
   const totalOuvriers = await prisma.utilisateur.count({ where: { role: 'OUVRIER',       approuve: true } })
   const totalChefs    = await prisma.utilisateur.count({ where: { role: 'CHEF_CHANTIER', approuve: true } })
 
   return (
     <AppLayout>
-      <TopBar title="Équipe" subtitle={`${totalOuvriers + totalChefs} membre${totalOuvriers + totalChefs > 1 ? 's' : ''}`} />
+      <TopBar
+        title="Équipe"
+        subtitle={`${totalOuvriers + totalChefs} membre${totalOuvriers + totalChefs > 1 ? 's' : ''}`}
+      />
 
       <main className="flex-1 px-8 py-8">
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalOuvriers}</p>
-            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Ouvriers</p>
-          </div>
           <div className="bg-white border border-blue-200 rounded-xl p-5">
             <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalChefs}</p>
             <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Chefs de chantier</p>
+          </div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalOuvriers}</p>
+            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wide font-medium">Ouvriers</p>
           </div>
         </div>
 
@@ -64,12 +79,11 @@ export default async function EquipePage({
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-4">
             <h2 className="text-sm font-semibold text-gray-900 shrink-0">Tous les membres</h2>
 
-            {/* Filtres */}
             <div className="flex items-center gap-2">
               {[
                 { label: 'Tous',     value: undefined  },
-                { label: 'Ouvriers', value: 'ouvrier'  },
                 { label: 'Chefs',    value: 'chef'     },
+                { label: 'Ouvriers', value: 'ouvrier'  },
               ].map(f => (
                 <a
                   key={f.label}
@@ -90,7 +104,7 @@ export default async function EquipePage({
             </div>
           </div>
 
-          {membres.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="py-16 text-center">
               <Users size={32} className="text-gray-200 mx-auto mb-3" />
               <p className="text-sm text-gray-400">
@@ -103,27 +117,24 @@ export default async function EquipePage({
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Membre</th>
                   <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Rôle</th>
-                  <th className="px-5 py-3" />
+                  {isChef && <th className="px-5 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {membres.map(m => (
+                {sorted.map(m => (
                   <tr key={m.id} className="hover:bg-gray-50 transition group">
 
-                    {/* Membre */}
+                    {/* Membre — cliquable vers la fiche */}
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                          {m.nom.charAt(0).toUpperCase()}
-                        </div>
+                      <Link href={`/utilisateurs/${m.id}`} className="flex items-center gap-3">
+                        <Avatar nom={m.nom} avatarPath={m.avatarPath} size={36} />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{m.nom}</p>
+                          <p className="text-sm font-medium text-gray-900 group-hover:underline">{m.nom}</p>
                           <p className="text-xs text-gray-400">{m.email}</p>
                         </div>
-                      </div>
+                      </Link>
                     </td>
 
-                    {/* Rôle */}
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border font-medium ${
                         m.role === 'CHEF_CHANTIER'
@@ -131,23 +142,22 @@ export default async function EquipePage({
                           : 'bg-gray-50 text-gray-600 border-gray-200'
                       }`}>
                         {m.role === 'CHEF_CHANTIER'
-                          ? <><HardHat size={11} />Chef de chantier</>
-                          : <><Wrench size={11} />Ouvrier</>
+                          ? <><HardHat size={11} /> Chef de chantier</>
+                          : <><Wrench size={11} /> Ouvrier</>
                         }
                       </span>
                     </td>
 
-                    
-
-                    {/* Actions */}
-                    <td className="px-5 py-3.5">
-                      {m.id !== user.id && (
-                        <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
-                          <ChangerRoleButton userId={m.id} roleActuel={m.role} />
-                          <SupprimerMembreButton userId={m.id} nom={m.nom} />
-                        </div>
-                      )}
-                    </td>
+                    {isChef && (
+                      <td className="px-5 py-3.5">
+                        {m.id !== user.id && (
+                          <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
+                            <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                            <SupprimerMembreButton userId={m.id} nom={m.nom} />
+                          </div>
+                        )}
+                      </td>
+                    )}
 
                   </tr>
                 ))}

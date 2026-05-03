@@ -1,15 +1,10 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { StatutChantier } from '@prisma/client'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
-import ChantierStats from '@/components/chantiers/ChantierStats'
 import ChantierCalendar from '@/components/chantiers/ChantierCalendar'
-import StatutBadge from '@/components/ui/StatutBadge'
-import StatutInline from '@/components/chantiers/StatutInline'
-import { MapPin, Plus } from 'lucide-react'
 
 export default async function ChantiersPage() {
   const user = await getCurrentUser()
@@ -26,6 +21,8 @@ export default async function ChantiersPage() {
     orderBy: { createdAt: 'desc' },
   })
 
+  const enCours = chantiers.filter(c => c.statut === 'EN_COURS')
+
   return (
     <AppLayout>
       <TopBar
@@ -34,14 +31,29 @@ export default async function ChantiersPage() {
       />
       <main className="flex-1 px-8 py-8 space-y-6">
 
-        <ChantierStats
-          total={chantiers.length}
-          enCours={chantiers.filter(c => c.statut === StatutChantier.EN_COURS).length}
-          enAttente={chantiers.filter(c => c.statut === StatutChantier.EN_ATTENTE).length}
-          termine={chantiers.filter(c => c.statut === StatutChantier.TERMINE).length}
-          suspendu={chantiers.filter(c => c.statut === StatutChantier.SUSPENDU).length}
-
-        />
+        {/* Chantiers en cours */}
+        {enCours.length > 0 && (
+          <div className="space-y-2">
+            {enCours.map(c => (
+              <Link key={c.id} href={`/chantiers/${c.id}`}>
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between hover:bg-blue-100 transition cursor-pointer">
+                  <div>
+                    <p className="text-xs text-blue-400 mb-0.5">En cours</p>
+                    <p className="text-sm font-semibold text-blue-900">{c.titre}</p>
+                    {c.client && (
+                      <p className="text-xs text-blue-400 mt-0.5">{c.client.nom}</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-medium text-blue-500 tabular-nums">
+                    {new Date(c.dateDebutPrevue).toLocaleDateString('fr-BE', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                    })}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
         <ChantierCalendar
           chantiers={chantiers.map(c => ({
@@ -54,9 +66,6 @@ export default async function ChantiersPage() {
           }))}
           isChef={isChef}
         />
-
-   
-        
 
       </main>
     </AppLayout>
