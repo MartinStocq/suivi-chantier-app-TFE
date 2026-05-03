@@ -7,7 +7,6 @@ import ChantierEquipe from '@/components/chantiers/ChantierEquipe'
 import ChantierPhotosGrid from '@/components/chantiers/ChantierPhotosGrid'
 import StatutInline from '@/components/chantiers/StatutInline'
 import PhotoUpload from '@/components/PhotoUpload'
-import Avatar from '@/components/ui/Avatar'
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
   Phone, Mail, Image, Users, ClipboardList
@@ -26,31 +25,12 @@ export default async function ChantierDetailPage({
   const chantier = await prisma.chantier.findUnique({
     where: { id },
     include: {
-      client:  true,
-      adresse: true,
-      createdBy: {
-        select: {
-          id:         true,
-          nom:        true,
-          email:      true,
-          avatarPath: true,
-        }
-      },
-      affectations: {
-        include: {
-          user: {
-            select: {
-              id:         true,
-              nom:        true,
-              email:      true,
-              role:       true,
-              avatarPath: true,
-            }
-          }
-        }
-      },
-      photos: { orderBy: { takenAt: 'desc' }, take: 6 },
-      _count:  { select: { photos: true } },
+      client:    true,
+      adresse:   true,
+      createdBy: true,
+      affectations: { include: { user: true } },
+      photos:    { orderBy: { takenAt: 'desc' }, take: 6 },
+      _count:    { select: { photos: true } },
     },
   })
   if (!chantier) notFound()
@@ -143,7 +123,7 @@ export default async function ChantierDetailPage({
                 </Link>
               )}
             </div>
-            <ChantierEquipe affectations={chantier.affectations} isChef={isChef} />
+            <ChantierEquipe affectations={chantier.affectations} isChef={false} />
           </div>
 
           {/* Photos */}
@@ -158,7 +138,11 @@ export default async function ChantierDetailPage({
                   </span>
                 </h2>
               </div>
-              <PhotoUpload chantierId={chantier.id} takenById={user.id} />
+              <PhotoUpload
+                chantierId={chantier.id}
+                takenById={user.id}
+              
+              />
             </div>
             <ChantierPhotosGrid
               photos={chantier.photos}
@@ -257,11 +241,10 @@ export default async function ChantierDetailPage({
               Créé par
             </h2>
             <div className="flex items-center gap-2.5">
-              <Avatar
-                nom={chantier.createdBy.nom}
-                avatarPath={chantier.createdBy.avatarPath}
-                size={28}
-              />
+              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center
+                              text-white text-xs font-semibold shrink-0">
+                {chantier.createdBy.nom.charAt(0).toUpperCase()}
+              </div>
               <div>
                 <p className="text-sm font-medium text-gray-900">{chantier.createdBy.nom}</p>
                 <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
