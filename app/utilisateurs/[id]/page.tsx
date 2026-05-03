@@ -17,8 +17,6 @@ export default async function UtilisateurFichePage({
 
   const { id } = await params
 
-  // Un ouvrier ne peut voir que son propre profil
-  if (user.role !== 'CHEF_CHANTIER' && user.id !== id) redirect('/dashboard')
 
   const membre = await prisma.utilisateur.findUnique({
     where: { id },

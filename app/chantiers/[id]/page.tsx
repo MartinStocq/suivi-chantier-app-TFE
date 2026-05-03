@@ -7,6 +7,8 @@ import ChantierEquipe from '@/components/chantiers/ChantierEquipe'
 import ChantierPhotosGrid from '@/components/chantiers/ChantierPhotosGrid'
 import StatutInline from '@/components/chantiers/StatutInline'
 import PhotoUpload from '@/components/PhotoUpload'
+import Avatar from '@/components/ui/Avatar'
+
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
   Phone, Mail, Image, Users, ClipboardList
@@ -236,21 +238,22 @@ export default async function ChantierDetailPage({
           </div>
 
           {/* Créé par */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Créé par
-            </h2>
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center
-                              text-white text-xs font-semibold shrink-0">
-                {chantier.createdBy.nom.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{chantier.createdBy.nom}</p>
-                <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
-              </div>
-            </div>
-          </div>
+<div className="bg-white border border-gray-200 rounded-xl p-5">
+  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+    Créé par
+  </h2>
+  <div className="flex items-center gap-2.5">
+    <Avatar
+      nom={chantier.createdBy.nom}
+      avatarPath={chantier.createdBy.avatarPath}
+      size={28}
+    />
+    <div>
+      <p className="text-sm font-medium text-gray-900">{chantier.createdBy.nom}</p>
+      <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
+    </div>
+  </div>
+</div>
 
         </div>
       </div>
