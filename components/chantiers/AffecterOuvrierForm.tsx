@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserPlus, UserMinus, Loader2 } from 'lucide-react'
+import Avatar from '@/components/ui/Avatar'
 
 interface Ouvrier {
-  id:    string
-  nom:   string
-  email: string
+  id:         string
+  nom:        string
+  email:      string
+  avatarPath?: string | null
 }
 
 interface Affectation {
@@ -49,7 +51,7 @@ export default function AffecterOuvrierForm({
     router.refresh()
   }
 
-  const affectes  = tousOuvriers.filter(o =>  affectesIds.has(o.id))
+  const affectes    = tousOuvriers.filter(o =>  affectesIds.has(o.id))
   const disponibles = tousOuvriers.filter(o => !affectesIds.has(o.id))
 
   return (
@@ -79,10 +81,7 @@ export default function AffecterOuvrierForm({
             {affectes.map(o => (
               <div key={o.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center
-                                  text-white text-xs font-semibold shrink-0">
-                    {o.nom.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar nom={o.nom} avatarPath={o.avatarPath} size={28} />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{o.nom}</p>
                     <p className="text-xs text-gray-400">{o.email}</p>
@@ -125,10 +124,7 @@ export default function AffecterOuvrierForm({
             {disponibles.map(o => (
               <div key={o.id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center
-                                  text-gray-500 text-xs font-semibold shrink-0">
-                    {o.nom.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar nom={o.nom} avatarPath={o.avatarPath} size={28} />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{o.nom}</p>
                     <p className="text-xs text-gray-400">{o.email}</p>

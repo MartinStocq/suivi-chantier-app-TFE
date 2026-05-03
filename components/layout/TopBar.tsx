@@ -1,7 +1,12 @@
 import { getCurrentUser } from '@/lib/auth'
+import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
+import Avatar from '@/components/ui/Avatar'
 
-interface Props { title: string; subtitle?: string }
+interface Props {
+  title: string
+  subtitle?: string
+}
 
 export default async function TopBar({ title, subtitle }: Props) {
   const user = await getCurrentUser()
@@ -12,16 +17,19 @@ export default async function TopBar({ title, subtitle }: Props) {
         <h1 className="text-sm font-semibold text-gray-900">{title}</h1>
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
+
       <div className="flex items-center gap-3">
-        <div className="text-right">
-          <p className="text-sm font-medium text-gray-900">{user?.nom}</p>
-          <p className="text-xs text-gray-400">
-            {user?.role === 'CHEF_CHANTIER' ? 'Chef de chantier' : 'Ouvrier'}
-          </p>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold">
-          {user?.nom?.charAt(0).toUpperCase()}
-        </div>
+
+        <Link href="/parametres" className="flex items-center gap-3 hover:opacity-75 transition">
+          <div className="text-right">
+            <p className="text-sm font-medium text-gray-900">{user?.nom}</p>
+            <p className="text-xs text-gray-400">
+              {user?.role === 'CHEF_CHANTIER' ? 'Chef de chantier' : 'Ouvrier'}
+            </p>
+          </div>
+          <Avatar nom={user?.nom ?? ''} avatarPath={user?.avatarPath} size={32} />
+        </Link>
+
         <LogoutButton />
       </div>
     </header>

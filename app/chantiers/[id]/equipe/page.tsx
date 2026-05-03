@@ -43,7 +43,7 @@ export default async function EquipePage({
               <ArrowLeft size={16} className="text-gray-500" />
             </Link>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">Gérer l'équipe</h1>
+              <h1 className="text-lg font-semibold text-gray-900">Gérer l&apos;équipe</h1>
               <p className="text-xs text-gray-400 mt-0.5">{chantier.titre}</p>
             </div>
           </div>
@@ -55,13 +55,19 @@ export default async function EquipePage({
         <AffecterOuvrierForm
           chantierId={id}
           tousOuvriers={tousOuvriers.map(o => ({
-            id:    o.id,
-            nom:   o.nom,
-            email: o.email,
+            id:         o.id,
+            nom:        o.nom,
+            email:      o.email,
+            avatarPath: o.avatarPath, // ← ajouté
           }))}
           affectations={chantier.affectations.map(a => ({
             userId: a.userId,
-            user:   { id: a.user.id, nom: a.user.nom, email: a.user.email },
+            user: {
+              id:         a.user.id,
+              nom:        a.user.nom,
+              email:      a.user.email,
+              avatarPath: a.user.avatarPath, // ← ajouté
+            },
           }))}
         />
       </div>

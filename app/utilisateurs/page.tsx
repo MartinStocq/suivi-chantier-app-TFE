@@ -1,11 +1,13 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
 import SearchBar from '@/components/SearchBar'
 import ChangerRoleButton from '@/components/equipe/ChangerRoleButton'
 import SupprimerMembreButton from '@/components/equipe/SupprimerMembreButton'
+import Avatar from '@/components/ui/Avatar'
 import { Users, HardHat, Wrench } from 'lucide-react'
 
 export default async function EquipePage({
@@ -17,7 +19,6 @@ export default async function EquipePage({
   if (!user) redirect('/login')
 
   const isChef = user.role === 'CHEF_CHANTIER'
-
   const { q: qRaw, filtre } = await searchParams
   const q = qRaw?.trim() ?? ''
 
@@ -33,8 +34,13 @@ export default async function EquipePage({
       ...(filtre === 'ouvrier' ? { role: 'OUVRIER'       } : {}),
       ...(filtre === 'chef'    ? { role: 'CHEF_CHANTIER' } : {}),
     },
-    include: {
-      _count: { select: { affectations: true } }
+    select: {
+      id:         true,
+      nom:        true,
+      email:      true,
+      role:       true,
+      avatarPath: true,
+      _count: { select: { affectations: true } },
     },
     orderBy: [{ nom: 'asc' }],
   })
@@ -118,16 +124,15 @@ export default async function EquipePage({
                 {sorted.map(m => (
                   <tr key={m.id} className="hover:bg-gray-50 transition group">
 
+                    {/* Membre — cliquable vers la fiche */}
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                          {m.nom.charAt(0).toUpperCase()}
-                        </div>
+                      <Link href={`/utilisateurs/${m.id}`} className="flex items-center gap-3">
+                        <Avatar nom={m.nom} avatarPath={m.avatarPath} size={36} />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{m.nom}</p>
+                          <p className="text-sm font-medium text-gray-900 group-hover:underline">{m.nom}</p>
                           <p className="text-xs text-gray-400">{m.email}</p>
                         </div>
-                      </div>
+                      </Link>
                     </td>
 
                     <td className="px-5 py-3.5">
