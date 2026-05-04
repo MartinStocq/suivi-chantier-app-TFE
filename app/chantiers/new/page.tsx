@@ -21,7 +21,7 @@ interface FormData {
 }
 
 const empty: FormData = {
-  titre: '', description: '', statut: 'ENATTENTE',
+  titre: '', description: '', statut: 'EN_ATTENTE',
   dateDebutPrevue: '', dateFinPrevue: '',
   clientNom: '', clientTel: '', clientEmail: '',
   rue: '', numero: '', codePostal: '', ville: '', pays: 'Belgique',

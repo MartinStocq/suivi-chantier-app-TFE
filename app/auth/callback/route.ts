@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -28,24 +28,31 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Récupère le user Supabase fraîchement connecté
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        // Crée le profil PostgreSQL s'il n'existe pas encore
         const existingProfil = await prisma.utilisateur.findUnique({
-          where: { id: user.id }
+          where:  { id: user.id },
+          select: { approuve: true },
         })
 
         if (!existingProfil) {
+          // FIX #6 — Nouveau compte Google → non approuvé, redirige vers attente
           await prisma.utilisateur.create({
             data: {
-              id: user.id,
-              email: user.email!,
-              nom: user.user_metadata?.full_name ?? user.email!.split('@')[0],
-              role: 'OUVRIER'
-            }
+              id:       user.id,
+              email:    user.email!,
+              nom:      user.user_metadata?.full_name ?? user.email!.split('@')[0],
+              role:     'OUVRIER',
+              approuve: false,
+            },
           })
+          return NextResponse.redirect(`${origin}/attente-validation`)
+        }
+
+        // FIX #6 — Compte existant mais non approuvé → attente
+        if (!existingProfil.approuve) {
+          return NextResponse.redirect(`${origin}/attente-validation`)
         }
       }
 
