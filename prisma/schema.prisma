@@ -53,12 +53,14 @@ model Utilisateur {
 // ─── Adresse ──────────────────────────────────────────────────
 
 model Adresse {
-  id         String @id @default(uuid())
+  id         String  @id @default(uuid())
   rue        String
   numero     String
-  codePostal String @map("code_postal")
+  codePostal String  @map("code_postal")
   ville      String
   pays       String
+  latitude   Float?
+  longitude  Float?
 
   chantiers Chantier[]
 
@@ -161,7 +163,7 @@ model RapportExport {
 
 model MeteoSnapshot {
   id           String   @id @default(uuid())
-  dateSnapshot DateTime @map("date_snapshot") @db.Date
+  dateSnapshot DateTime @default(now()) @map("date_snapshot")
   source       String
   payload      String   @db.Text
 

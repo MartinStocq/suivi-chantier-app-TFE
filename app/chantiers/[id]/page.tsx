@@ -33,9 +33,14 @@ export default async function ChantierDetailPage({
       affectations: { include: { user: true } },
       photos:    { orderBy: { takenAt: 'desc' }, take: 6 },
       _count:    { select: { photos: true } },
+      meteoSnapshots: { orderBy: { dateSnapshot: 'desc' }, take: 1 },
     },
   })
   if (!chantier) notFound()
+
+  const lastMeteo = chantier.meteoSnapshots[0]
+  const meteoData = lastMeteo ? JSON.parse(lastMeteo.payload) : null
+  const currentMeteo = meteoData?.current
 
   const isChef = user.role === 'CHEF_CHANTIER'
 
@@ -253,6 +258,43 @@ export default async function ChantierDetailPage({
       <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
     </div>
   </div>
+</div>
+
+{/* Météo */}
+<div className="bg-white border border-gray-200 rounded-xl p-5">
+  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center justify-between">
+    Météo
+    {currentMeteo && (
+      <span className="text-[10px] font-normal text-gray-400 lowercase">
+        {new Date(lastMeteo.dateSnapshot).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+      </span>
+    )}
+  </h2>
+  {currentMeteo ? (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-gray-600">Température</span>
+        <span className="text-sm font-medium text-gray-900">{currentMeteo.temperature_2m}°C</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-gray-600">Vent</span>
+        <span className="text-sm font-medium text-gray-900">{currentMeteo.wind_speed_10m} km/h</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-gray-600">Précipitations</span>
+        <span className="text-sm font-medium text-gray-900">{currentMeteo.precipitation} mm/h</span>
+      </div>
+      <div className="mt-2 pt-2 border-t border-gray-100">
+        <p className="text-[10px] text-gray-400 italic">
+          Source: Open-Meteo
+        </p>
+      </div>
+    </div>
+  ) : (
+    <p className="text-xs text-gray-400 italic text-center py-2">
+      {chantier.adresse.latitude ? "Aucune donnée météo récente." : "Coordonnées manquantes pour la météo."}
+    </p>
+  )}
 </div>
 
         </div>

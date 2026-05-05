@@ -89,7 +89,17 @@ export async function PUT(
         dateDebutPrevue: new Date(dateDebutPrevue),
         dateFinPrevue:   dateFinPrevue ? new Date(dateFinPrevue) : null,
         client:  { update: { nom: client.nom, telephone: client.telephone ?? null, email: client.email ?? null } },
-        adresse: { update: { rue: adresse.rue, numero: adresse.numero, codePostal: adresse.codePostal, ville: adresse.ville, pays: adresse.pays ?? 'Belgique' } },
+        adresse: { 
+          update: { 
+            rue: adresse.rue, 
+            numero: adresse.numero, 
+            codePostal: adresse.codePostal, 
+            ville: adresse.ville, 
+            pays: adresse.pays ?? 'Belgique',
+            latitude: adresse.latitude ? parseFloat(adresse.latitude) : null,
+            longitude: adresse.longitude ? parseFloat(adresse.longitude) : null,
+          } 
+        },
       },
       include: { client: true, adresse: true },
     })
