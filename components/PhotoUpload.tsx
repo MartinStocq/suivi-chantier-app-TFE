@@ -8,17 +8,20 @@ import { addPhotoAction } from '@/app/actions/photo'
 interface PhotoUploadProps {
   chantierId: string
   takenById: string
+  type?: 'AVANT' | 'APRES'
 }
 
-export default function PhotoUpload({ chantierId, takenById }: PhotoUploadProps) {
+export default function PhotoUpload({ chantierId, takenById, type: forcedType }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [type, setType] = useState<'AVANT' | 'APRES'>('AVANT')
+  const [internalType, setInternalType] = useState<'AVANT' | 'APRES'>('AVANT')
   const [open, setOpen] = useState(false)
 
+  const activeType = forcedType ?? internalType
+
   function selectType(t: 'AVANT' | 'APRES') {
-    setType(t)
+    setInternalType(t)
     setOpen(false)
     // on déclenche l'input seulement après que le state est à jour
     setTimeout(() => {
@@ -34,7 +37,7 @@ export default function PhotoUpload({ chantierId, takenById }: PhotoUploadProps)
       try {
         for (const file of Array.from(files)) {
           const storagePath = await uploadPhoto(file, chantierId)
-          await addPhotoAction({ chantierId, takenById, type, storagePath })
+          await addPhotoAction({ chantierId, takenById, type: activeType, storagePath })
         }
       } catch (e: any) {
         setError(e.message ?? "Erreur lors de l'envoi")
@@ -55,22 +58,28 @@ export default function PhotoUpload({ chantierId, takenById }: PhotoUploadProps)
       />
 
       <div className="relative">
-        {/* Bouton principal : ouvre le dropdown */}
+        {/* Bouton principal */}
         <button
           type="button"
           disabled={isPending}
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (forcedType) {
+              inputRef.current?.click()
+            } else {
+              setOpen((v) => !v)
+            }
+          }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200
                      rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50
                      transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPending ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
           {isPending ? 'Envoi…' : '+ Ajouter'}
-          <ChevronDown size={11} className="text-gray-400" />
+          {!forcedType && <ChevronDown size={11} className="text-gray-400" />}
         </button>
 
-        {/* Dropdown Avant / Après — le clic sélectionne ET ouvre la caméra */}
-        {open && (
+        {/* Dropdown Avant / Après — affiché seulement si pas de type forcé */}
+        {!forcedType && open && (
           <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-md z-20 overflow-hidden min-w-[100px]">
             <button
               type="button"
