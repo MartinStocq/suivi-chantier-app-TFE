@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function sendMeteoNotification(
   email: string, 
@@ -8,7 +8,7 @@ export async function sendMeteoNotification(
   action: 'SUSPENDU' | 'REPRIS', 
   reason: string
 ) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend) {
     console.warn('RESEND_API_KEY not set, skipping notification');
     return;
   }

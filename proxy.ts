@@ -28,7 +28,8 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute = pathname.startsWith('/login') ||
                         pathname.startsWith('/register') ||
                         pathname.startsWith('/attente-validation') ||
-                        pathname.startsWith('/auth/callback')
+                        pathname.startsWith('/auth/callback') ||
+                        pathname === '/api/meteo/sync'
 
   // 1. Pas connecté → login
   if (!user && !isPublicRoute) {

@@ -163,9 +163,13 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
         <div>
           <label className={lbl}>Statut</label>
           <select value={form.statut} onChange={set('statut')} className={inp}>
-            {STATUTS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
+            {STATUTS.map(s => {
+              // On empêche de passer manuellement "En cours" s'il n'y est pas déjà
+              const isDisabled = s.value === StatutChantier.EN_COURS && chantier.statut !== StatutChantier.EN_COURS
+              if (isDisabled) return null
+              
+              return <option key={s.value} value={s.value}>{s.label}</option>
+            })}
           </select>
         </div>
 

@@ -1,6 +1,8 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { autoUpdateChantierStatuts } from '@/lib/chantiers'
+import { autoUpdateMeteo } from '@/lib/meteo'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
@@ -15,6 +17,10 @@ export default async function Dashboard({
 }) {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+
+  // Mise à jour automatique des statuts et de la météo
+  await autoUpdateChantierStatuts()
+  await autoUpdateMeteo()
 
   const { q: qRaw, u: uRaw } = await searchParams
   const q = qRaw?.trim() ?? ''
@@ -151,7 +157,7 @@ export default async function Dashboard({
                 <TrendingUp size={15} className="text-gray-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Taux d'avancement</p>
+                <p className="text-sm font-medium text-gray-900">Taux d&apos;avancement</p>
                 <p className="text-xs text-gray-500">
                   {total > 0 ? Math.round((termine / total) * 100) : 0}% terminés
                 </p>

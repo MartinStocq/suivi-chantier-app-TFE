@@ -1,6 +1,8 @@
 import { getCurrentUser } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import { autoUpdateChantierStatuts } from '@/lib/chantiers'
+import { autoUpdateMeteo, getForecast, checkWeatherFavorability } from '@/lib/meteo'
 import Link from 'next/link'
 import StatutBadge from '@/components/ui/StatutBadge'
 import ChantierEquipe from '@/components/chantiers/ChantierEquipe'
@@ -8,10 +10,12 @@ import ChantierPhotosGrid from '@/components/chantiers/ChantierPhotosGrid'
 import StatutInline from '@/components/chantiers/StatutInline'
 import PhotoUpload from '@/components/PhotoUpload'
 import Avatar from '@/components/ui/Avatar'
+import MeteoSyncButton from '@/components/chantiers/MeteoSyncButton'
 
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
-  Phone, Mail, Image, Users, ClipboardList
+  Phone, Mail, Image, Users, ClipboardList,
+  Wind, Droplets
 } from 'lucide-react'
 
 export default async function ChantierDetailPage({
@@ -21,6 +25,10 @@ export default async function ChantierDetailPage({
 }) {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+
+  // Mise à jour automatique des statuts et de la météo
+  await autoUpdateChantierStatuts()
+  await autoUpdateMeteo()
 
   const { id } = await params
 
@@ -38,9 +46,59 @@ export default async function ChantierDetailPage({
   })
   if (!chantier) notFound()
 
+  // Météo Actuelle
   const lastMeteo = chantier.meteoSnapshots[0]
   const meteoData = lastMeteo ? JSON.parse(lastMeteo.payload) : null
   const currentMeteo = meteoData?.current
+
+  // Prévisions dynamiques
+  let forecastDays: any[] = []
+  let scheduledMeteo = null
+
+  if (chantier.adresse.latitude && chantier.adresse.longitude) {
+    const fullForecast = await getForecast(chantier.adresse.latitude, chantier.adresse.longitude)
+    if (fullForecast) {
+      // 1. Trouver la météo prévue pour le jour du début (existant)
+      const dStart = new Date(chantier.dateDebutPrevue)
+      const dateStartStr = `${dStart.getFullYear()}-${String(dStart.getMonth() + 1).padStart(2, '0')}-${String(dStart.getDate()).padStart(2, '0')}`
+      const startIdx = fullForecast.findIndex((f: any) => f.date === dateStartStr)
+      if (startIdx !== -1) {
+        scheduledMeteo = {
+          code: fullForecast[startIdx].weatherCode,
+          max: fullForecast[startIdx].tempMax,
+          min: fullForecast[startIdx].tempMin,
+        }
+      }
+
+      // 2. Calculer les prévisions à afficher (Timeline)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      // Nombre de jours à afficher : du jour même jusqu'à la fin (max 5)
+      let daysToShow = 3 // Par défaut
+      if (chantier.dateFinPrevue) {
+        const dEnd = new Date(chantier.dateFinPrevue)
+        const diffTime = dEnd.getTime() - today.getTime()
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        daysToShow = Math.max(1, Math.min(5, diffDays + 1))
+      }
+
+      forecastDays = fullForecast.slice(0, daysToShow)
+    }
+  }
+
+  const getWeatherIcon = (code: number) => {
+    if (code === 0) return '☀️'
+    if (code <= 3) return '🌤️'
+    if (code <= 48) return '☁️'
+    if (code <= 57) return '🌧️'
+    if (code <= 67) return '🌧️'
+    if (code <= 77) return '❄️'
+    if (code <= 82) return '🌦️'
+    if (code <= 86) return '🌨️'
+    if (code <= 99) return '⛈️'
+    return '🌡️'
+  }
 
   const isChef = user.role === 'CHEF_CHANTIER'
 
@@ -69,7 +127,7 @@ export default async function ChantierDetailPage({
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-semibold text-gray-900">{chantier.titre}</h1>
                   {isChef
-                    ? <StatutInline chantierId={chantier.id} statut={chantier.statut} />
+                    ? <StatutInline chantierId={chantier.id} statut={chantier.statut} dateDebutPrevue={chantier.dateDebutPrevue.toISOString()} />
                     : <StatutBadge statut={chantier.statut} />
                   }
                 </div>
@@ -158,6 +216,153 @@ export default async function ChantierDetailPage({
             />
           </div>
 
+          {/* Météo (Déplacé sous les photos) */}
+          {chantier.statut !== 'TERMINE' && !(chantier.dateFinPrevue && new Date() > new Date(chantier.dateFinPrevue) && chantier.statut !== 'EN_COURS') && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <Wind size={14} className="text-gray-400" />
+                  <h2 className="text-sm font-semibold text-gray-900">Surveillance Météo</h2>
+                </div>
+                <MeteoSyncButton />
+              </div>
+
+              <div className="space-y-6">
+                {/* Affichage Unifié de la Météo */}
+                {(currentMeteo || scheduledMeteo) ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Colonne Gauche: État Actuel */}
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-3">
+                          {currentMeteo 
+                            ? `Dernière mise à jour : ${new Date(lastMeteo.dateSnapshot).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}`
+                            : `Le ${new Date(chantier.dateDebutPrevue).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })} (Début prévu)`
+                          }
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <span className="text-5xl">
+                              {getWeatherIcon(currentMeteo ? currentMeteo.weather_code : (scheduledMeteo?.code ?? 0))}
+                            </span>
+                            <div>
+                              <p className="text-3xl font-black text-gray-900 tabular-nums">
+                                {Math.round(currentMeteo ? currentMeteo.temperature_2m : (scheduledMeteo?.max ?? 0))}°C
+                              </p>
+                              <p className="text-[11px] text-gray-500 uppercase font-bold tracking-tight">
+                                {currentMeteo ? 'Conditions actuelles' : 'Maximum prévu'}
+                              </p>
+                            </div>
+                          </div>
+                          {(() => {
+                            const data = currentMeteo || {};
+                            const temp = data.temperature_2m || 0;
+                            const precip = data.precipitation || 0;
+                            const wind = data.wind_speed_10m || 0;
+                            const code = currentMeteo ? data.weather_code : (scheduledMeteo?.code || 0);
+                            const { isFavorable } = checkWeatherFavorability(temp, precip, wind, code);
+
+                            return (
+                              <span className={!isFavorable 
+                                ? "px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg text-[11px] font-black uppercase tracking-tighter" 
+                                : "px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[11px] font-black uppercase tracking-tighter"
+                              }>
+                                {!isFavorable ? "⚠️ ARRÊT" : "✅ OK"}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {currentMeteo && (
+                        <div className="grid grid-cols-2 gap-4 mt-6 pt-5 border-t border-gray-200/50">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-white rounded-lg border border-gray-100">
+                              <Wind size={16} className="text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-gray-400 uppercase font-bold leading-none mb-1.5">Vent</p>
+                              <p className="text-sm font-black text-gray-900 leading-none">
+                                {currentMeteo.wind_speed_10m} <span className="text-[10px] font-medium text-gray-400 uppercase">km/h</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-white rounded-lg border border-gray-100">
+                              <Droplets size={16} className="text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="text-[9px] text-gray-400 uppercase font-bold leading-none mb-1.5">Pluie</p>
+                              <p className="text-sm font-black text-gray-900 leading-none">
+                                {currentMeteo.precipitation} <span className="text-[10px] font-medium text-gray-400 uppercase">mm/h</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Colonne Droite: Prévisions Timeline */}
+                    {forecastDays.length > 0 && (
+                      <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-5">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-5">Prévisions ({forecastDays.length} jours)</p>
+                        <div className="flex justify-between items-end gap-2 h-[100px]">
+                          {forecastDays.map((f, idx) => {
+                            const dStart = new Date(chantier.dateDebutPrevue);
+                            const dateStartStr = `${dStart.getFullYear()}-${String(dStart.getMonth() + 1).padStart(2, '0')}-${String(dStart.getDate()).padStart(2, '0')}`;
+                            const isStartDay = f.date === dateStartStr;
+
+                            const isEndDay = chantier.dateFinPrevue && (() => {
+                              const dEnd = new Date(chantier.dateFinPrevue);
+                              const dateEndStr = `${dEnd.getFullYear()}-${String(dEnd.getMonth() + 1).padStart(2, '0')}-${String(dEnd.getDate()).padStart(2, '0')}`;
+                              return f.date === dateEndStr;
+                            })();
+
+                            return (
+                              <div key={idx} className="flex flex-col items-center flex-1 group">
+                                <div className="flex flex-col items-center mb-2 transition-transform group-hover:-translate-y-1">
+                                  <span className="text-2xl mb-1">{getWeatherIcon(f.weatherCode)}</span>
+                                  <p className="text-xs font-black text-gray-900 tabular-nums">{Math.round(f.tempMax)}°</p>
+                                  <p className="text-[10px] font-medium text-gray-400 tabular-nums">{Math.round(f.tempMin)}°</p>
+                                </div>
+                                <div className="w-full flex flex-col items-center pt-2 border-t border-gray-200">
+                                  <p className="text-[10px] font-black text-gray-400 uppercase">
+                                    {idx === 0 ? 'Auj.' : new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short' }).replace('.', '')}
+                                  </p>
+                                  {isStartDay && (
+                                    <span className="mt-1 px-1 py-0.5 bg-blue-600 text-[6px] text-white font-black uppercase rounded-[2px] tracking-tighter">
+                                      Début
+                                    </span>
+                                  )}
+                                  {isEndDay && (
+                                    <span className="mt-1 px-1 py-0.5 bg-amber-600 text-[6px] text-white font-black uppercase rounded-[2px] tracking-tighter">
+                                      Fin
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-sm text-gray-400 italic font-medium">Position en cours de détection...</p>
+                    <div className="mt-4"><MeteoSyncButton label="Lancer la détection" /></div>
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <p className="text-[10px] text-gray-400 italic">
+                    Données fournies par Open-Meteo
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Sidebar */}
@@ -205,6 +410,11 @@ export default async function ChantierDetailPage({
                 {chantier.adresse.pays && (
                   <p className="text-xs text-gray-400 mt-0.5">{chantier.adresse.pays}</p>
                 )}
+                {(chantier.adresse.latitude && chantier.adresse.longitude) && (
+                  <p className="text-[10px] text-gray-400 mt-2 font-mono">
+                    {chantier.adresse.latitude.toFixed(4)}, {chantier.adresse.longitude.toFixed(4)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -243,59 +453,22 @@ export default async function ChantierDetailPage({
           </div>
 
           {/* Créé par */}
-<div className="bg-white border border-gray-200 rounded-xl p-5">
-  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
-    Créé par
-  </h2>
-  <div className="flex items-center gap-2.5">
-    <Avatar
-      nom={chantier.createdBy.nom}
-      avatarPath={chantier.createdBy.avatarPath}
-      size={28}
-    />
-    <div>
-      <p className="text-sm font-medium text-gray-900">{chantier.createdBy.nom}</p>
-      <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
-    </div>
-  </div>
-</div>
-
-{/* Météo */}
-<div className="bg-white border border-gray-200 rounded-xl p-5">
-  <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center justify-between">
-    Météo
-    {currentMeteo && (
-      <span className="text-[10px] font-normal text-gray-400 lowercase">
-        {new Date(lastMeteo.dateSnapshot).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
-      </span>
-    )}
-  </h2>
-  {currentMeteo ? (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Température</span>
-        <span className="text-sm font-medium text-gray-900">{currentMeteo.temperature_2m}°C</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Vent</span>
-        <span className="text-sm font-medium text-gray-900">{currentMeteo.wind_speed_10m} km/h</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-600">Précipitations</span>
-        <span className="text-sm font-medium text-gray-900">{currentMeteo.precipitation} mm/h</span>
-      </div>
-      <div className="mt-2 pt-2 border-t border-gray-100">
-        <p className="text-[10px] text-gray-400 italic">
-          Source: Open-Meteo
-        </p>
-      </div>
-    </div>
-  ) : (
-    <p className="text-xs text-gray-400 italic text-center py-2">
-      {chantier.adresse.latitude ? "Aucune donnée météo récente." : "Coordonnées manquantes pour la météo."}
-    </p>
-  )}
-</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Créé par
+            </h2>
+            <div className="flex items-center gap-2.5">
+              <Avatar
+                nom={chantier.createdBy.nom}
+                avatarPath={chantier.createdBy.avatarPath}
+                size={28}
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900">{chantier.createdBy.nom}</p>
+                <p className="text-xs text-gray-400">{chantier.createdBy.email}</p>
+              </div>
+            </div>
+          </div>
 
         </div>
       </div>
