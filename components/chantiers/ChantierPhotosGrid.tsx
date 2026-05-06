@@ -14,6 +14,7 @@ interface Props {
   photos: Photo[]
   totalPhotos: number
   chantierId: string
+  canDelete?: boolean
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -22,11 +23,12 @@ function photoUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`
 }
 
-function PhotoCard({ photo, chantierId }: { photo: Photo; chantierId: string }) {
+function PhotoCard({ photo, chantierId, canDelete = true }: { photo: Photo; chantierId: string; canDelete?: boolean }) {
   const [isPending, startTransition] = useTransition()
   const [confirm, setConfirm] = useState(false)
 
   function handleDelete() {
+    if (!canDelete) return
     if (!confirm) {
       setConfirm(true)
       setTimeout(() => setConfirm(false), 3000)
@@ -52,18 +54,20 @@ function PhotoCard({ photo, chantierId }: { photo: Photo; chantierId: string }) 
       </span>
 
       {/* Bouton supprimer */}
-      <button
-        type="button"
-        onClick={handleDelete}
-        disabled={isPending}
-        className={`absolute top-1.5 right-1.5 p-1.5 rounded-lg text-white text-xs font-medium
-                    transition opacity-0 group-hover:opacity-100
-                    ${confirm ? 'bg-red-500 opacity-100' : 'bg-black/50 hover:bg-red-500'}
-                    disabled:opacity-50`}
-        title={confirm ? 'Cliquer encore pour confirmer' : 'Supprimer'}
-      >
-        {isPending ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-      </button>
+      {canDelete && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={isPending}
+          className={`absolute top-1.5 right-1.5 p-1.5 rounded-lg text-white text-xs font-medium
+                      transition opacity-0 group-hover:opacity-100
+                      ${confirm ? 'bg-red-500 opacity-100' : 'bg-black/50 hover:bg-red-500'}
+                      disabled:opacity-50`}
+          title={confirm ? 'Cliquer encore pour confirmer' : 'Supprimer'}
+        >
+          {isPending ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+        </button>
+      )}
 
       {/* Tooltip confirmation */}
       {confirm && (
@@ -75,7 +79,7 @@ function PhotoCard({ photo, chantierId }: { photo: Photo; chantierId: string }) 
   )
 }
 
-export default function ChantierPhotosGrid({ photos, totalPhotos, chantierId }: Props) {
+export default function ChantierPhotosGrid({ photos, totalPhotos, chantierId, canDelete = true }: Props) {
   if (photos.length === 0) {
     return (
       <div className="border border-dashed border-gray-200 rounded-lg py-12 text-center">
@@ -87,7 +91,7 @@ export default function ChantierPhotosGrid({ photos, totalPhotos, chantierId }: 
   return (
     <div className="grid grid-cols-3 gap-2">
       {photos.map((photo) => (
-        <PhotoCard key={photo.id} photo={photo} chantierId={chantierId} />
+        <PhotoCard key={photo.id} photo={photo} chantierId={chantierId} canDelete={canDelete} />
       ))}
     </div>
   )

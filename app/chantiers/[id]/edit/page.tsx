@@ -42,6 +42,8 @@ export default async function ChantierEditPage({
       codePostal: chantier.adresse.codePostal,
       ville:      chantier.adresse.ville,
       pays:       chantier.adresse.pays ?? 'Belgique',
+      latitude:   chantier.adresse.latitude,
+      longitude:  chantier.adresse.longitude,
     },
   }
 

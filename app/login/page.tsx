@@ -52,7 +52,7 @@ export default function LoginPage() {
           {/* Features */}
           <div className="space-y-3">
             {[
-              'Suivi en temps réel de l\'avancement',
+              'Suivi en temps réel de l&apos;avancement',
               'Gestion des affectations par chantier',
               'Upload photos avant / après travaux',
               'Exports et rapports PDF / CSV',

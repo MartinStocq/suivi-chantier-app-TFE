@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { StatutChantier } from '@prisma/client'
+import { getCoordinates } from '@/lib/meteo'
 
 function parseStatut(val: unknown): StatutChantier {
   const str = String(val ?? '').toUpperCase().replace(/[^A-Z]/g, '')
@@ -52,6 +53,32 @@ export async function POST(req: NextRequest) {
     if (!adresse?.codePostal) return NextResponse.json({ error: 'Le code postal est requis'    }, { status: 400 })
     if (!adresse?.ville)      return NextResponse.json({ error: 'La ville est requise'          }, { status: 400 })
 
+    const targetStatut = parseStatut(statut)
+    const targetDateDebut = new Date(dateDebutPrevue)
+
+    // Interdiction de mettre "En cours" manuellement
+    if (targetStatut === StatutChantier.EN_COURS) {
+      return NextResponse.json({ error: "Le passage en statut 'En cours' est automatique le jour du début du chantier." }, { status: 400 })
+    }
+
+    // Sécurité : Pas de "Suspendu" dans le futur
+    if (targetStatut === StatutChantier.SUSPENDU && targetDateDebut.getTime() > new Date().setHours(23,59,59,999)) {
+      return NextResponse.json({ error: "Impossible de créer un chantier 'Suspendu' avant sa date de début." }, { status: 400 })
+    }
+
+    let lat = adresse.latitude ? parseFloat(adresse.latitude) : null
+    let lon = adresse.longitude ? parseFloat(adresse.longitude) : null
+
+    // Si pas de coordonnées manuelles, on géocode
+    if (!lat || !lon) {
+      const query = `${adresse.rue} ${adresse.numero}, ${adresse.ville}, ${adresse.pays || 'Belgique'}`
+      const coords = await getCoordinates(query)
+      if (coords) {
+        lat = coords.latitude
+        lon = coords.longitude
+      }
+    }
+
     const chantier = await prisma.chantier.create({
       data: {
         titre,
@@ -74,6 +101,8 @@ export async function POST(req: NextRequest) {
             codePostal: adresse.codePostal,
             ville:      adresse.ville,
             pays:       adresse.pays    ?? 'Belgique',
+            latitude:   lat,
+            longitude:  lon,
           },
         },
       },

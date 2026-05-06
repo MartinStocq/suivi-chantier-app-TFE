@@ -18,13 +18,16 @@ interface FormData {
   codePostal:     string
   ville:          string
   pays:           string
+  latitude:       string
+  longitude:      string
 }
 
 const empty: FormData = {
-  titre: '', description: '', statut: 'ENATTENTE',
+  titre: '', description: '', statut: 'EN_ATTENTE',
   dateDebutPrevue: '', dateFinPrevue: '',
   clientNom: '', clientTel: '', clientEmail: '',
   rue: '', numero: '', codePostal: '', ville: '', pays: 'Belgique',
+  latitude: '', longitude: '',
 }
 
 export default function NouveauChantierPage() {
@@ -61,6 +64,8 @@ export default function NouveauChantierPage() {
           codePostal: form.codePostal,
           ville:      form.ville,
           pays:       form.pays,
+          latitude:   form.latitude  ? parseFloat(form.latitude)  : null,
+          longitude:  form.longitude ? parseFloat(form.longitude) : null,
         },
       }),
     })
@@ -130,7 +135,6 @@ export default function NouveauChantierPage() {
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
               >
                 <option value="ENATTENTE">En attente</option>
-                <option value="ENCOURS">En cours</option>
                 <option value="TERMINE">Terminé</option>
                 <option value="SUSPENDU">Suspendu</option>
               </select>
@@ -236,7 +240,10 @@ export default function NouveauChantierPage() {
               />
             </div>
           </div>
-        </div>
+          <p className="text-[10px] text-gray-400">
+            La surveillance météo s&apos;activera automatiquement à partir de l&apos;adresse saisie.
+          </p>
+          </div>
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-2 pb-8">

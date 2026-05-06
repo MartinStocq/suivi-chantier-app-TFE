@@ -1,3 +1,4 @@
+// proxy.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -27,23 +28,19 @@ export async function proxy(request: NextRequest) {
   const isPublicRoute = pathname.startsWith('/login') ||
                         pathname.startsWith('/register') ||
                         pathname.startsWith('/attente-validation') ||
-                        pathname.startsWith('/auth/callback')
+                        pathname.startsWith('/auth/callback') ||
+                        pathname === '/api/meteo/sync'
 
-  // Pas connecté → login
+  // 1. Pas connecté → login
   if (!user && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Connecté + approuvé → pas besoin de rester sur login/register
-if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
-  return NextResponse.redirect(new URL('/dashboard', request.url))
-}
-
-  // Connecté → vérifie approbation
+  // 2. Connecté → vérifie approbation (avant tout redirect)
   if (user && !isPublicRoute) {
     const profil = await prisma.utilisateur.findUnique({
       where: { id: user.id },
-      select: { approuve: true }
+      select: { approuve: true },
     })
 
     if (!profil?.approuve) {
@@ -51,7 +48,7 @@ if (user && (pathname.startsWith('/login') || pathname.startsWith('/register')))
     }
   }
 
-  // Connecté + approuvé → pas besoin de rester sur login/register
+  // 3. Connecté + approuvé → redirige depuis login/register vers dashboard
   if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -62,4 +59,3 @@ if (user && (pathname.startsWith('/login') || pathname.startsWith('/register')))
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|$).*)'],
 }
-

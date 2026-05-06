@@ -23,10 +23,11 @@ interface ChantierData {
     codePostal: string
     ville:      string
     pays:       string | null
+    latitude:   number | null
+    longitude:  number | null
   }
 }
 
-// Construire les options depuis l'enum Prisma réel
 const STATUTS = Object.values(StatutChantier).map((v) => {
   const s = v as string
   return {
@@ -67,6 +68,8 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
     codePostal:      chantier.adresse.codePostal,
     ville:           chantier.adresse.ville,
     pays:            chantier.adresse.pays ?? 'Belgique',
+    latitude:        chantier.adresse.latitude?.toString() ?? '',
+    longitude:       chantier.adresse.longitude?.toString() ?? '',
   })
 
   const set = (k: keyof typeof form) =>
@@ -99,6 +102,8 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
             codePostal: form.codePostal,
             ville:      form.ville,
             pays:       form.pays,
+            latitude:   form.latitude  || null,
+            longitude:  form.longitude || null,
           },
         }),
       })
@@ -158,9 +163,13 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
         <div>
           <label className={lbl}>Statut</label>
           <select value={form.statut} onChange={set('statut')} className={inp}>
-            {STATUTS.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
+            {STATUTS.map(s => {
+              // On empêche de passer manuellement "En cours" s'il n'y est pas déjà
+              const isDisabled = s.value === StatutChantier.EN_COURS && chantier.statut !== StatutChantier.EN_COURS
+              if (isDisabled) return null
+              
+              return <option key={s.value} value={s.value}>{s.label}</option>
+            })}
           </select>
         </div>
 
@@ -199,7 +208,7 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
 
       {/* Adresse */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-900">Adresse</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Adresse & Géolocalisation</h2>
 
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
@@ -223,10 +232,23 @@ export default function ChantierEditForm({ chantier }: { chantier: ChantierData 
           </div>
         </div>
 
-        <div>
-          <label className={lbl}>Pays</label>
-          <input value={form.pays} onChange={set('pays')} className={inp} />
+        <div className="grid grid-cols-3 gap-4">
+           <div className="col-span-1">
+            <label className={lbl}>Pays</label>
+            <input value={form.pays} onChange={set('pays')} className={inp} />
+          </div>
+          <div>
+            <label className={lbl}>Latitude (ex: 50.85)</label>
+            <input value={form.latitude} onChange={set('latitude')} className={inp} placeholder="50.8503" />
+          </div>
+          <div>
+            <label className={lbl}>Longitude (ex: 4.35)</label>
+            <input value={form.longitude} onChange={set('longitude')} className={inp} placeholder="4.3517" />
+          </div>
         </div>
+        <p className="text-[10px] text-gray-400">
+          Les coordonnées sont nécessaires pour la surveillance météo automatique.
+        </p>
       </div>
 
       {/* Actions */}
