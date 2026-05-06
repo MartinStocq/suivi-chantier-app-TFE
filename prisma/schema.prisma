@@ -47,6 +47,7 @@ model Utilisateur {
   photosPrises   Photo[]               @relation("PhotoPrise")
   chantiersCreés Chantier[]            @relation("ChantierCreePar")
   exports        RapportExport[]
+  pointages      Pointage[]
 
   @@map("utilisateurs")
 }
@@ -103,6 +104,7 @@ model Chantier {
   photos         Photo[]
   rapports       RapportExport[]
   meteoSnapshots MeteoSnapshot[]
+  pointages      Pointage[]
 
   @@map("chantiers")
 }
@@ -173,3 +175,23 @@ model MeteoSnapshot {
   @@map("meteo_snapshots")
 }
 
+
+// ─── Pointage ─────────────────────────────────────────────────
+
+model Pointage {
+  id          String   @id @default(uuid())
+  date        DateTime @db.Date
+  debut       DateTime
+  fin         DateTime
+  duree       Float    // Stocké en heures (ex: 8.5)
+  commentaire String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  chantierId    String      @map("id_chantier")
+  utilisateurId String      @map("id_utilisateur")
+
+  chantier    Chantier    @relation(fields: [chantierId], references: [id])
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  @@map("pointages")
+}

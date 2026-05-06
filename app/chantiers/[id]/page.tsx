@@ -15,7 +15,7 @@ import MeteoSyncButton from '@/components/chantiers/MeteoSyncButton'
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
   Phone, Mail, Image, Users, ClipboardList,
-  Wind, Droplets
+  Wind, Droplets, Clock
 } from 'lucide-react'
 
 export default async function ChantierDetailPage({
@@ -46,12 +46,34 @@ export default async function ChantierDetailPage({
   })
   if (!chantier) notFound()
 
+  // Calcul du total d'heures
+  const statsHeures = await prisma.pointage.aggregate({
+    where: { chantierId: id },
+    _sum: { duree: true }
+  })
+  const totalHeures = statsHeures._sum.duree || 0
+  const isChef = user.role === 'CHEF_CHANTIER'
+
+  // Groupement des heures par utilisateur
+  const pointagesGrouped = await prisma.pointage.groupBy({
+    by: ['utilisateurId'],
+    where: { chantierId: id },
+    _sum: { duree: true }
+  })
+
+  // Mapper les heures vers les affectations
+  const affectationsWithHours = chantier.affectations.map(a => ({
+    ...a,
+    totalHeures: pointagesGrouped.find(p => p.utilisateurId === a.userId)?._sum.duree || 0
+  }))
+
   // Météo Actuelle
   const lastMeteo = chantier.meteoSnapshots[0]
   const meteoData = lastMeteo ? JSON.parse(lastMeteo.payload) : null
   const currentMeteo = meteoData?.current
 
   // Prévisions dynamiques
+  
   let forecastDays: any[] = []
   let scheduledMeteo = null
 
@@ -99,8 +121,6 @@ export default async function ChantierDetailPage({
     if (code <= 99) return '⛈️'
     return '🌡️'
   }
-
-  const isChef = user.role === 'CHEF_CHANTIER'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -186,14 +206,13 @@ export default async function ChantierDetailPage({
                   className="text-xs text-gray-500 hover:text-gray-900 transition font-medium">
                   Affecter
                 </Link>
-              )}
-            </div>
-            <ChantierEquipe affectations={chantier.affectations} isChef={false} />
-          </div>
+                )}
+              </div>
+              <ChantierEquipe affectations={affectationsWithHours as any} isChef={isChef} />
+              </div>
 
-          {/* Photos */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
+                {/* Photos */}
+                <div className="bg-white border border-gray-200 rounded-xl p-6">            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Image size={14} className="text-gray-400" />
                 <h2 className="text-sm font-semibold text-gray-900">
@@ -369,6 +388,23 @@ export default async function ChantierDetailPage({
 
         {/* Sidebar */}
         <div className="space-y-4">
+
+          {/* Statistiques (Heures) */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+              <Clock size={12} className="text-gray-400" />
+              Statistiques
+            </h2>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-black text-gray-900 tabular-nums">{totalHeures}</p>
+              <p className="text-sm font-medium text-gray-500">heures cumulées</p>
+            </div>
+            <div className="mt-3 pt-3 border-t border-gray-50">
+              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+                Sur la base des pointages ouvriers
+              </p>
+            </div>
+          </div>
 
           {/* Client */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
