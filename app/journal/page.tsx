@@ -240,5 +240,5 @@ export default async function JournalPage({
         </div>
       </main>
     </AppLayout>
-  )
+)
 }

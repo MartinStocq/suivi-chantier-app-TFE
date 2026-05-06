@@ -33,12 +33,14 @@ const S: Record<string, { pill: string; dot: string; label: string }> = {
 
 const getWeatherIcon = (code: number) => {
   if (code === 0) return '☀️'
-  if (code <= 3) return '🌤️'
-  if (code <= 48) return '☁️'
-  if (code <= 57) return '🌧️'
+  if (code === 1) return '🌤️'
+  if (code === 2) return '⛅'
+  if (code === 3) return '☁️'
+  if (code <= 48) return '🌫️'
+  if (code <= 55) return '🌦️'
   if (code <= 67) return '🌧️'
   if (code <= 77) return '❄️'
-  if (code <= 82) return '🌦️'
+  if (code <= 82) return '🌧️'
   if (code <= 86) return '🌨️'
   if (code <= 99) return '⛈️'
   return '🌡️'

@@ -15,11 +15,12 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+// Temporairement désactivé pour forcer le rafraîchissement du schéma (champ 'lien')
+export const prisma = createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// if (process.env.NODE_ENV !== "production") {
+//   globalForPrisma.prisma = prisma;
+// }
 
 export default prisma;
 

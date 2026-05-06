@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { StatutChantier } from '@prisma/client'
 import { getCoordinates } from '@/lib/meteo'
+import { createInAppNotification } from '@/lib/notifications'
 
 function parseStatut(val: unknown): StatutChantier {
   const str = String(val ?? '').toUpperCase().replace(/[^A-Z]/g, '')
@@ -55,11 +56,6 @@ export async function POST(req: NextRequest) {
 
     const targetStatut = parseStatut(statut)
     const targetDateDebut = new Date(dateDebutPrevue)
-
-    // Interdiction de mettre "En cours" manuellement
-    if (targetStatut === StatutChantier.EN_COURS) {
-      return NextResponse.json({ error: "Le passage en statut 'En cours' est automatique le jour du début du chantier." }, { status: 400 })
-    }
 
     // Sécurité : Pas de "Suspendu" dans le futur
     if (targetStatut === StatutChantier.SUSPENDU && targetDateDebut.getTime() > new Date().setHours(23,59,59,999)) {
@@ -117,6 +113,13 @@ export async function POST(req: NextRequest) {
         details: `Création du chantier "${chantier.titre}"`,
       }
     })
+
+    await createInAppNotification(
+      me.id,
+      "Nouveau chantier créé",
+      `Le chantier "${chantier.titre}" a été créé avec succès.`,
+      `/chantiers/${chantier.id}`
+    )
 
     return NextResponse.json(chantier, { status: 201 })
 

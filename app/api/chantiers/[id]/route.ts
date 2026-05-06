@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { StatutChantier } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { getCoordinates } from '@/lib/meteo'
+import { notifyProjectMembers } from '@/lib/notifications'
 
 function parseStatut(val: unknown): StatutChantier {
   const str = String(val ?? '').toUpperCase().replace(/[^A-Z]/g, '')
@@ -71,15 +72,12 @@ export async function PUT(
     const targetStatut = statut ? parseStatut(statut) : undefined
     const targetDateDebut = dateDebutPrevue ? new Date(dateDebutPrevue) : undefined
 
-    // Interdiction de mettre "En cours" manuellement
-    if (targetStatut === StatutChantier.EN_COURS) {
-      return NextResponse.json({ error: "Le passage en statut 'En cours' est automatique le jour du début du chantier." }, { status: 400 })
-    }
-
     if (statut && !titre && !client && !adresse) {
+      console.log(`[API PUT] Quick status update for ${id} to ${targetStatut}`);
       const chantier = await prisma.chantier.update({ where: { id }, data: { statut: targetStatut } })
       
       if (existing.statut !== targetStatut) {
+        console.log(`[API PUT] Status changed from ${existing.statut}. Notifying members...`);
         await prisma.actionJournal.create({
           data: {
             action: 'CHANGEMENT_STATUT',
@@ -88,6 +86,13 @@ export async function PUT(
             details: `Statut passé de ${existing.statut} à ${targetStatut}`,
           }
         })
+
+        await notifyProjectMembers(
+          id,
+          "Changement de statut",
+          `Le statut du chantier "${existing.titre}" est passé de ${existing.statut} à ${targetStatut}.`,
+          me.id
+        )
       }
 
       return NextResponse.json(chantier)
@@ -139,6 +144,7 @@ export async function PUT(
     })
 
     if (statut && existing.statut !== parseStatut(statut)) {
+      console.log(`[API PUT] Full update: Status changed to ${parseStatut(statut)}. Notifying...`);
       await prisma.actionJournal.create({
         data: {
           action: 'CHANGEMENT_STATUT',
@@ -147,6 +153,22 @@ export async function PUT(
           details: `Statut passé de ${existing.statut} à ${parseStatut(statut)}`,
         }
       })
+      
+      await notifyProjectMembers(
+        chantier.id,
+        "Mise à jour du chantier",
+        `Le chantier "${chantier.titre}" a été mis à jour (Statut, Dates ou Infos).`,
+        me.id
+      )
+    } else {
+      console.log(`[API PUT] Full update: No status change. Notifying...`);
+      // Notification générique si pas de changement de statut mais d'autres modifs
+      await notifyProjectMembers(
+        chantier.id,
+        "Mise à jour du chantier",
+        `Les informations du chantier "${chantier.titre}" ont été modifiées.`,
+        me.id
+      )
     }
 
     return NextResponse.json(chantier)

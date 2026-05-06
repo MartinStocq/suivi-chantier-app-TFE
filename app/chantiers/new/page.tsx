@@ -135,6 +135,7 @@ export default function NouveauChantierPage() {
                 className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
               >
                 <option value="ENATTENTE">En attente</option>
+                <option value="ENCOURS">En cours</option>
                 <option value="TERMINE">Terminé</option>
                 <option value="SUSPENDU">Suspendu</option>
               </select>

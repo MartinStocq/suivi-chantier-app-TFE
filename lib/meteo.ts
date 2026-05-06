@@ -1,5 +1,5 @@
 import { StatutChantier } from '@prisma/client';
-import prisma from './prisma';
+import { prisma } from './prisma';
 import { sendMeteoNotification } from './notifications';
 
 const OPEN_METEO_URL = 'https://api.open-meteo.com/v1/forecast';
@@ -48,65 +48,89 @@ export function checkWeatherFavorability(temp: number, precip: number, wind: num
 }
 
 export async function getCoordinates(query: string) {
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=fr&format=json`;
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = await response.json();
-  if (!data.results || data.results.length === 0) return null;
-  return {
-    latitude: data.results[0].latitude,
-    longitude: data.results[0].longitude
-  };
+  try {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=fr&format=json`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) return null;
+    return {
+      latitude: data.results[0].latitude,
+      longitude: data.results[0].longitude
+    };
+  } catch (error) {
+    console.error(`[Meteo] getCoordinates failed for "${query}":`, error);
+    return null;
+  }
 }
 
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherCondition & { rawPayload: string }> {
   const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,wind_speed_10m`;
   
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch weather data: ${response.statusText}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weather data: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const current = data.current;
+
+    const temperature = current.temperature_2m;
+    const precipitation = current.precipitation;
+    const windSpeed = current.wind_speed_10m;
+    const weatherCode = current.weather_code;
+
+    const { isFavorable, reason } = checkWeatherFavorability(temperature, precipitation, windSpeed, weatherCode);
+
+    return {
+      temperature,
+      precipitation,
+      windSpeed,
+      weatherCode,
+      isFavorable,
+      reason,
+      rawPayload: JSON.stringify(data)
+    };
+  } catch (error) {
+    console.error(`[Meteo] getWeatherData failed for ${lat},${lon}:`, error);
+    // Retourner un objet par défaut pour éviter de casser le flux
+    return {
+      temperature: 0,
+      precipitation: 0,
+      windSpeed: 0,
+      weatherCode: 0,
+      isFavorable: true,
+      reason: "Indisponible",
+      rawPayload: "{}"
+    };
   }
-
-  const data = await response.json();
-  const current = data.current;
-
-  const temperature = current.temperature_2m;
-  const precipitation = current.precipitation;
-  const windSpeed = current.wind_speed_10m;
-  const weatherCode = current.weather_code;
-
-  const { isFavorable, reason } = checkWeatherFavorability(temperature, precipitation, windSpeed, weatherCode);
-
-  return {
-    temperature,
-    precipitation,
-    windSpeed,
-    weatherCode,
-    isFavorable,
-    reason,
-    rawPayload: JSON.stringify(data)
-  };
 }
 
 export async function getForecast(lat: number, lon: number) {
-  const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto`;
-  const response = await fetch(url);
-  if (!response.ok) return null;
-  const data = await response.json();
-  
-  if (!data.daily) return null;
+  try {
+    const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    
+    if (!data.daily) return null;
 
-  // Transformer les données en un tableau de jours plus facile à manipuler
-  const dailyForecasts = data.daily.time.map((date: string, index: number) => ({
-    date,
-    weatherCode: data.daily.weather_code[index],
-    tempMax: data.daily.temperature_2m_max[index],
-    tempMin: data.daily.temperature_2m_min[index],
-    precipitationSum: data.daily.precipitation_sum[index],
-    windSpeedMax: data.daily.wind_speed_10m_max[index]
-  }));
+    // Transformer les données en un tableau de jours plus facile à manipuler
+    const dailyForecasts = data.daily.time.map((date: string, index: number) => ({
+      date,
+      weatherCode: data.daily.weather_code[index],
+      tempMax: data.daily.temperature_2m_max[index],
+      tempMin: data.daily.temperature_2m_min[index],
+      precipitationSum: data.daily.precipitation_sum[index],
+      windSpeedMax: data.daily.wind_speed_10m_max[index]
+    }));
 
-  return dailyForecasts;
+    return dailyForecasts;
+  } catch (error) {
+    console.error(`[Meteo] getForecast failed for ${lat},${lon}:`, error);
+    return null;
+  }
 }
 
 export async function autoUpdateMeteo() {
@@ -272,7 +296,8 @@ export async function syncChantiersMeteo() {
             chantier.createdBy.email,
             chantier.titre,
             notificationAction,
-            weather.reason || (notificationAction === 'REPRIS' ? 'Conditions redevenues favorables' : 'Météo défavorable')
+            weather.reason || (notificationAction === 'REPRIS' ? 'Conditions redevenues favorables' : 'Météo défavorable'),
+            chantier.id
           );
         }
 
