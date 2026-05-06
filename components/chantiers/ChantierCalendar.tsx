@@ -12,11 +12,11 @@ type ChantierItem = {
   dateFinPrevue?: string | null
   client?: { nom: string } | null
   forecast?: {
-    time: string[]
-    weather_code: number[]
-    temperature_2m_max: number[]
-    temperature_2m_min: number[]
-  } | null
+    date: string
+    weatherCode: number
+    tempMax: number
+    tempMin: number
+  }[] | null
 }
 
 type Props = {
@@ -33,12 +33,14 @@ const S: Record<string, { pill: string; dot: string; label: string }> = {
 
 const getWeatherIcon = (code: number) => {
   if (code === 0) return '☀️'
-  if (code <= 3) return '🌤️'
-  if (code <= 48) return '☁️'
-  if (code <= 57) return '🌧️'
+  if (code === 1) return '🌤️'
+  if (code === 2) return '⛅'
+  if (code === 3) return '☁️'
+  if (code <= 48) return '🌫️'
+  if (code <= 55) return '🌦️'
   if (code <= 67) return '🌧️'
   if (code <= 77) return '❄️'
-  if (code <= 82) return '🌦️'
+  if (code <= 82) return '🌧️'
   if (code <= 86) return '🌨️'
   if (code <= 99) return '⛈️'
   return '🌡️'
@@ -86,15 +88,14 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
     month === 11 ? (setMonth(0), setYear(y => y + 1)) : setMonth(m => m + 1)
 
   const getDayForecast = (chantier: ChantierItem, day: Date) => {
-    if (!chantier.forecast) return null
+    if (!chantier.forecast || !Array.isArray(chantier.forecast)) return null
     
-    // On normalise la date pour la comparaison (YYYY-MM-DD)
     const y = day.getFullYear();
     const m = String(day.getMonth() + 1).padStart(2, '0');
     const d = String(day.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
     
-    const dayData = (chantier.forecast as any[])?.find((f: any) => f.date === dateStr)
+    const dayData = chantier.forecast.find((f: any) => f.date === dateStr)
     if (!dayData) return null
 
     return {

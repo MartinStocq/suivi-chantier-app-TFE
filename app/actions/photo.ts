@@ -50,6 +50,15 @@ export async function addPhotoAction(data: AddPhotoInput) {
     },
   })
 
+  await prisma.actionJournal.create({
+    data: {
+      action: 'AJOUT_PHOTO',
+      chantierId: data.chantierId,
+      auteurId: me.id,
+      details: `Ajout d'une photo ${data.type}`,
+    }
+  })
+
   revalidatePath(`/chantiers/${data.chantierId}`)
   revalidatePath(`/chantiers/${data.chantierId}/photos`)
 }

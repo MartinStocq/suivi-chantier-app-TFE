@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import Link from 'next/link'
 import LogoutButton from '@/components/LogoutButton'
 import Avatar from '@/components/ui/Avatar'
+import NotificationBell from './NotificationBell'
 
 interface Props {
   title: string
@@ -18,7 +19,8 @@ export default async function TopBar({ title, subtitle }: Props) {
         {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-6">
+        <NotificationBell />
 
         <Link href="/parametres" className="flex items-center gap-3 hover:opacity-75 transition">
           <div className="text-right">

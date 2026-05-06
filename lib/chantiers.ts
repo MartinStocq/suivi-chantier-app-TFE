@@ -1,5 +1,6 @@
 import { prisma } from './prisma'
 import { StatutChantier } from '@prisma/client'
+import { notifyProjectMembers } from './notifications'
 
 /**
  * Met à jour automatiquement les chantiers :
@@ -31,6 +32,15 @@ export async function autoUpdateChantierStatuts() {
       where: { id: { in: chantiersToStart.map(c => c.id) } },
       data: { statut: StatutChantier.EN_COURS },
     })
+
+    for (const c of chantiersToStart) {
+      await notifyProjectMembers(
+        c.id,
+        "Démarrage automatique",
+        `Le chantier "${c.titre}" a démarré automatiquement aujourd'hui.`
+      )
+    }
+
     console.log(`[AutoStatut] ${chantiersToStart.length} chantier(s) passé(s) en EN_COURS : ${chantiersToStart.map(c => c.titre).join(', ')}`)
   }
 
@@ -48,6 +58,15 @@ export async function autoUpdateChantierStatuts() {
       where: { id: { in: chantiersToFinish.map(c => c.id) } },
       data: { statut: StatutChantier.TERMINE },
     })
+
+    for (const c of chantiersToFinish) {
+      await notifyProjectMembers(
+        c.id,
+        "Clôture automatique",
+        `Le chantier "${c.titre}" a été clôturé automatiquement.`
+      )
+    }
+
     console.log(`[AutoStatut] ${chantiersToFinish.length} chantier(s) passé(s) en TERMINE : ${chantiersToFinish.map(c => c.titre).join(', ')}`)
   }
 }

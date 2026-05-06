@@ -2,7 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { autoUpdateChantierStatuts } from '@/lib/chantiers'
-import { autoUpdateMeteo } from '@/lib/meteo'
+import { autoUpdateMeteo, getWeatherData } from '@/lib/meteo'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
@@ -34,9 +34,18 @@ export default async function ChantiersPage() {
   // Météo individualisée par chantier pour le calendrier
   const chantiersWithForecast = await Promise.all(chantiers.map(async (c) => {
     let forecast = null
+    let currentWeather = null
+
     if (c.adresse.latitude && c.adresse.longitude) {
+      // 1. On récupère le forecast pour le calendrier
       forecast = await getForecast(c.adresse.latitude, c.adresse.longitude)
+
+      // 2. Si le chantier est en cours, on récupère la météo EN TEMPS RÉEL (maintenant)
+      if (c.statut === 'EN_COURS') {
+        currentWeather = await getWeatherData(c.adresse.latitude, c.adresse.longitude)
+      }
     }
+
     return {
       id:              c.id,
       titre:           c.titre,
@@ -44,7 +53,8 @@ export default async function ChantiersPage() {
       dateDebutPrevue: c.dateDebutPrevue.toISOString(),
       dateFinPrevue:   c.dateFinPrevue?.toISOString() ?? null,
       client:          c.client ? { nom: c.client.nom } : null,
-      forecast:        forecast
+      forecast:        forecast,
+      currentWeather:  currentWeather
     }
   }))
 
@@ -61,39 +71,60 @@ export default async function ChantiersPage() {
           <div className="space-y-2">
             {enCours.map(c => {
               const chantierData = chantiersWithForecast.find(cf => cf.id === c.id);
+              const cur = chantierData?.currentWeather;
               const forecast = chantierData?.forecast;
-              
-              // On cherche la météo pour le jour du début
-              const d = new Date(c.dateDebutPrevue);
-              const dateDebutStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              const dayForecast = (forecast as any[])?.find((f: any) => f.date === dateDebutStr);
-              
-              const weatherCode = dayForecast?.weatherCode ?? null;
-              const tempMax = dayForecast?.tempMax ?? null;
 
-              // On ne montre la météo que si le chantier commence aujourd'hui ou après
-              const startOfToday = new Date();
-              startOfToday.setHours(0,0,0,0);
-              const showWeather = weatherCode !== null && weatherCode !== undefined && new Date(c.dateDebutPrevue).getTime() >= startOfToday.getTime();
+              const weatherCode = cur ? cur.weatherCode : null;
+              const temp = cur ? cur.temperature : null;
+              const isRealTime = cur !== null && cur !== undefined;
+
+              // Détermination de l'icône (jour/nuit)
+              const hour = new Date().getHours();
+              const isNight = hour >= 22 || hour < 6;
+
+              const getWeatherIcon = (code: number | null) => {
+                if (code === null) return '🌡️';
+                if (code === 0) return isNight ? '🌙' : '☀️';
+                if (code === 1) return isNight ? '☁️' : '🌤️';
+                if (code === 2) return isNight ? '☁️' : '⛅';
+                if (code === 3) return '☁️';
+                if (code <= 48) return '🌫️';
+                if (code <= 55) return '🌦️';
+                if (code <= 67) return '🌧️';
+                if (code <= 77) return '❄️';
+                if (code <= 82) return '🌧️';
+                if (code <= 86) return '🌨️';
+                if (code <= 99) return '⛈️';
+                return '🌡️';
+              };
+
+              // Fallback si pas de temps réel : on cherche dans le forecast
+              let displayWeatherCode = weatherCode;
+              let displayTemp = temp;
+              let tooltip = "Météo actuelle (temps réel)";
+
+              if (!isRealTime) {
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                const dayForecast = (forecast as any[])?.find((f: any) => f.date === todayStr);
+                displayWeatherCode = dayForecast?.weatherCode ?? null;
+                displayTemp = dayForecast?.tempMax ?? null;
+                tooltip = "Météo du jour (prévision)";
+              }
+
+              const showWeather = displayWeatherCode !== null && displayWeatherCode !== undefined;
 
               return (
                 <Link key={c.id} href={`/chantiers/${c.id}`}>
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between hover:bg-blue-100 transition cursor-pointer">
                     <div className="flex items-center gap-4">
                       {showWeather && (
-                        <div className="flex flex-col items-center justify-center bg-white/50 w-12 h-12 rounded-lg border border-blue-100" title="Météo prévue au démarrage">
+                        <div className="flex flex-col items-center justify-center bg-white/50 w-12 h-12 rounded-lg border border-blue-100" title={tooltip}>
                           <span className="text-xl leading-none">
-                            {weatherCode === 0 ? '☀️' :
-                             weatherCode <= 3 ? '🌤️' :
-                             weatherCode <= 48 ? '☁️' :
-                             weatherCode <= 67 ? '🌧️' :
-                             weatherCode <= 77 ? '❄️' :
-                             weatherCode <= 82 ? '🌦️' :
-                             weatherCode <= 86 ? '🌨️' :
-                             weatherCode <= 99 ? '⛈️' : '🌡️'}
+                            {getWeatherIcon(displayWeatherCode)}
                           </span>
-                          {tempMax !== null && (
-                            <span className="text-[10px] font-bold text-blue-700 mt-1">{Math.round(tempMax)}°</span>
+                          {displayTemp !== null && (
+                            <span className="text-[10px] font-bold text-blue-700 mt-1">{Math.round(displayTemp)}°</span>
                           )}
                         </div>
                       )}
@@ -103,7 +134,10 @@ export default async function ChantiersPage() {
                         </div>
                       )}
                       <div>
-                        <p className="text-xs text-blue-400 mb-0.5 font-medium uppercase tracking-wider">En cours</p>
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <p className="text-xs text-blue-400 font-medium uppercase tracking-wider">En cours</p>
+                            {isRealTime && <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" title="Direct"></span>}
+                        </div>
                         <p className="text-sm font-semibold text-blue-900">{c.titre}</p>
                         {c.client && (
                           <p className="text-xs text-blue-400 mt-0.5">{c.client.nom}</p>
@@ -112,8 +146,8 @@ export default async function ChantiersPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-blue-500 tabular-nums">
-                        {new Date(c.dateDebutPrevue).toLocaleDateString('fr-BE', {
-                          day: '2-digit', month: 'short', year: 'numeric',
+                        Aujourd&apos;hui, {new Date().toLocaleDateString('fr-BE', {
+                          day: '2-digit', month: 'short'
                         })}
                       </p>
                       <p className="text-[10px] text-blue-300 mt-1">{c.adresse.ville}</p>
@@ -133,4 +167,4 @@ export default async function ChantiersPage() {
       </main>
     </AppLayout>
   )
-  }
+}

@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, HardHat, Plus, Users, Settings } from 'lucide-react'
+import { LayoutDashboard, HardHat, Plus, Users, Settings, BookOpen } from 'lucide-react'
 
 interface Props {
   role: 'CHEF_CHANTIER' | 'OUVRIER'
@@ -14,6 +14,7 @@ export default function Sidebar({ role }: Props) {
     { href: '/dashboard',     label: 'Dashboard', icon: LayoutDashboard, show: true },
     { href: '/chantiers',     label: 'Chantiers', icon: HardHat,         show: true },
     { href: '/chantiers/new', label: 'Nouveau',   icon: Plus,            show: role === 'CHEF_CHANTIER' },
+    { href: '/journal',       label: 'Journal',   icon: BookOpen,        show: role === 'CHEF_CHANTIER' },
     { href: '/utilisateurs',  label: 'Équipe',    icon: Users,           show: true },
     { href: '/parametres',    label: 'Paramètres',icon: Settings,        show: true },
   ]

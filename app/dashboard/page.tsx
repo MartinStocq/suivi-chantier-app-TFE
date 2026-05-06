@@ -84,7 +84,12 @@ export default async function Dashboard({
   }
 
   // Données spécifiques ouvrier
-  let assignedChantiers: { id: string; titre: string }[] = []
+  let assignedChantiers: { 
+    id: string; 
+    titre: string; 
+    dateDebutPrevue: string | Date; 
+    dateFinPrevue?: string | Date | null 
+  }[] = []
   let recentPointages: any[] = []
   let weekHours = 0
 

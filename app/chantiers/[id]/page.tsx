@@ -11,6 +11,7 @@ import StatutInline from '@/components/chantiers/StatutInline'
 import PhotoUpload from '@/components/PhotoUpload'
 import Avatar from '@/components/ui/Avatar'
 import MeteoSyncButton from '@/components/chantiers/MeteoSyncButton'
+import ExportButton from '@/components/chantiers/ExportButton'
 
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
@@ -42,6 +43,10 @@ export default async function ChantierDetailPage({
       photos:    { orderBy: { takenAt: 'desc' }, take: 6 },
       _count:    { select: { photos: true } },
       meteoSnapshots: { orderBy: { dateSnapshot: 'desc' }, take: 1 },
+      pointages: {
+        orderBy: { date: 'desc' },
+        include: { utilisateur: { select: { nom: true, avatarPath: true } } }
+      }
     },
   })
   if (!chantier) notFound()
@@ -110,13 +115,18 @@ export default async function ChantierDetailPage({
   }
 
   const getWeatherIcon = (code: number) => {
-    if (code === 0) return '☀️'
-    if (code <= 3) return '🌤️'
-    if (code <= 48) return '☁️'
-    if (code <= 57) return '🌧️'
+    const hour = new Date().getHours()
+    const isNight = hour >= 22 || hour < 6
+
+    if (code === 0) return isNight ? '🌙' : '☀️'
+    if (code === 1) return isNight ? '☁️' : '🌤️'
+    if (code === 2) return isNight ? '☁️' : '⛅'
+    if (code === 3) return '☁️'
+    if (code <= 48) return '🌫️'
+    if (code <= 55) return '🌦️'
     if (code <= 67) return '🌧️'
     if (code <= 77) return '❄️'
-    if (code <= 82) return '🌦️'
+    if (code <= 82) return '🌧️'
     if (code <= 86) return '🌨️'
     if (code <= 99) return '⛈️'
     return '🌡️'
@@ -159,12 +169,15 @@ export default async function ChantierDetailPage({
             </div>
 
             {isChef && (
-              <Link href={`/chantiers/${id}/edit`}
-                className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200
-                           rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
-                <Pencil size={12} />
-                Modifier
-              </Link>
+              <div className="flex items-center gap-2">
+                <ExportButton chantierId={id} />
+                <Link href={`/chantiers/${id}/edit`}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200
+                             rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition">
+                  <Pencil size={12} />
+                  Modifier
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -206,13 +219,14 @@ export default async function ChantierDetailPage({
                   className="text-xs text-gray-500 hover:text-gray-900 transition font-medium">
                   Affecter
                 </Link>
-                )}
-              </div>
-              <ChantierEquipe affectations={affectationsWithHours as any} isChef={isChef} />
-              </div>
+              )}
+            </div>
+            <ChantierEquipe affectations={affectationsWithHours as never} isChef={isChef} />
+          </div>
 
-                {/* Photos */}
-                <div className="bg-white border border-gray-200 rounded-xl p-6">            <div className="flex items-center justify-between mb-4">
+          {/* Photos */}
+          <div className="bg-white border border-gray-200 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Image size={14} className="text-gray-400" />
                 <h2 className="text-sm font-semibold text-gray-900">
@@ -389,23 +403,6 @@ export default async function ChantierDetailPage({
         {/* Sidebar */}
         <div className="space-y-4">
 
-          {/* Statistiques (Heures) */}
-          <div className="bg-white border border-gray-200 rounded-xl p-5">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
-              <Clock size={12} className="text-gray-400" />
-              Statistiques
-            </h2>
-            <div className="flex items-baseline gap-2">
-              <p className="text-2xl font-black text-gray-900 tabular-nums">{totalHeures}</p>
-              <p className="text-sm font-medium text-gray-500">heures cumulées</p>
-            </div>
-            <div className="mt-3 pt-3 border-t border-gray-50">
-              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
-                Sur la base des pointages ouvriers
-              </p>
-            </div>
-          </div>
-
           {/* Client */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
@@ -486,6 +483,32 @@ export default async function ChantierDetailPage({
                     </p>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Dernières prestations */}
+          <div className="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+              <Clock size={12} className="text-gray-400" />
+              Dernières prestations
+            </h2>
+            <div className="space-y-3">
+              {chantier.pointages.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Aucun pointage</p>
+              ) : (
+                chantier.pointages.slice(0, 5).map(p => (
+                  <div key={p.id} className="flex items-center justify-between text-xs border-b border-gray-50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2">
+                      <Avatar nom={p.utilisateur.nom} avatarPath={p.utilisateur.avatarPath} size={20} />
+                      <span className="font-medium text-gray-700">{p.utilisateur.nom.split(' ')[0]}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">{p.duree.toString().replace('.', ',')}h</p>
+                      <p className="text-[9px] text-gray-400">{new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}</p>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>

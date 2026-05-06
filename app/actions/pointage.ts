@@ -49,7 +49,7 @@ export async function addPointageAction(data: AddPointageInput) {
     }
   }
 
-  await prisma.pointage.create({
+  const pointage = await prisma.pointage.create({
     data: {
       date: dateObj,
       debut: debutDateTime,
@@ -58,9 +58,23 @@ export async function addPointageAction(data: AddPointageInput) {
       commentaire: data.commentaire || null,
       chantierId: data.chantierId,
       utilisateurId: user.id
+    },
+    include: {
+      chantier: { select: { titre: true } }
+    }
+  })
+
+  // Création d'une entrée dans le journal
+  await prisma.actionJournal.create({
+    data: {
+      action: 'POINTAGE',
+      chantierId: data.chantierId,
+      auteurId: user.id,
+      details: `Pointage de ${duree.toString().replace('.', ',')}h effectué sur le chantier "${pointage.chantier.titre}"`,
     }
   })
 
   revalidatePath('/dashboard')
   revalidatePath(`/chantiers/${data.chantierId}`)
+  revalidatePath('/journal')
 }

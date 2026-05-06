@@ -54,11 +54,6 @@ export default function StatutInline({
   const handleChange = async (newStatut: StatutChantier) => {
     if (newStatut === current || saving) return
 
-    if (newStatut === StatutChantier.EN_COURS) {
-      alert("Le passage en statut 'En cours' est automatique le jour du début du chantier.")
-      return
-    }
-
     setSaving(newStatut)
     const res = await fetch(`/api/chantiers/${chantierId}`, {
       method:  'PUT',
@@ -78,19 +73,15 @@ export default function StatutInline({
   return (
     <div className="flex items-center gap-1.5">
       {STATUTS.map(s => {
-        const isEnCours = s.value === StatutChantier.EN_COURS
-        // "En cours" est toujours automatique (sauf s'il l'est déjà)
-        const disabled = isEnCours && current !== StatutChantier.EN_COURS
-
         return (
           <button
             key={s.value}
             onClick={() => handleChange(s.value)}
-            disabled={saving !== null || (disabled && current !== s.value)}
-            title={disabled ? "Le passage 'En cours' est automatique" : s.label}
+            disabled={saving !== null}
+            title={s.label}
             className={[
               'px-2.5 py-1 rounded-lg border text-xs transition-all',
-              saving === s.value ? 'opacity-50 cursor-wait' : (disabled && current !== s.value ? 'opacity-30 cursor-not-allowed grayscale' : 'cursor-pointer'),
+              saving === s.value ? 'opacity-50 cursor-wait' : 'cursor-pointer',
               current === s.value ? s.active : s.idle,
             ].join(' ')}
           >
