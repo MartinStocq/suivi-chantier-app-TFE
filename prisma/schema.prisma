@@ -26,6 +26,15 @@ enum TypePhoto {
   APRES
 }
 
+enum TypeActionJournal {
+  CREATION_CHANTIER
+  CHANGEMENT_STATUT
+  AJOUT_PHOTO
+  AFFECTATION_OUVRIER
+  RETRAIT_OUVRIER
+  POINTAGE
+}
+
 enum FormatExport {
   CSV
   PDF
@@ -43,21 +52,23 @@ model Utilisateur {
   avatarPath String?  @map("avatar_path")
   createdAt  DateTime @default(now()) @map("created_at")
 
-  affectations   AffectationChantier[]
-  photosPrises   Photo[]               @relation("PhotoPrise")
+  affectations    AffectationChantier[]
+  photosPrises    Photo[]               @relation("PhotoPrise")
   chantiersCreés Chantier[]            @relation("ChantierCreePar")
-  exports        RapportExport[]
-  pointages      Pointage[]
+  exports         RapportExport[]
+  pointages       Pointage[]
+  actionsJournal  ActionJournal[]
 
   @@map("utilisateurs")
 }
+
 // ─── Adresse ──────────────────────────────────────────────────
 
 model Adresse {
-  id         String  @id @default(uuid())
+  id         String @id @default(uuid())
   rue        String
   numero     String
-  codePostal String  @map("code_postal")
+  codePostal String @map("code_postal")
   ville      String
   pays       String
   latitude   Float?
@@ -89,15 +100,15 @@ model Chantier {
   description     String?        @db.Text
   statut          StatutChantier @default(EN_ATTENTE)
   dateDebutPrevue DateTime       @map("date_debut_prevue") @db.Date
-  dateFinPrevue   DateTime?      @map("date_fin_prevue")   @db.Date
-  createdAt       DateTime       @default(now())           @map("created_at")
+  dateFinPrevue   DateTime?      @map("date_fin_prevue") @db.Date
+  createdAt       DateTime       @default(now()) @map("created_at")
 
-  clientId    String      @map("id_client")
-  adresseId   String      @map("id_adresse")
-  createdById String      @map("created_by")
+  clientId    String @map("id_client")
+  adresseId   String @map("id_adresse")
+  createdById String @map("created_by")
 
-  client    Client      @relation(fields: [clientId],    references: [id])
-  adresse   Adresse     @relation(fields: [adresseId],   references: [id])
+  client    Client      @relation(fields: [clientId], references: [id])
+  adresse   Adresse     @relation(fields: [adresseId], references: [id])
   createdBy Utilisateur @relation("ChantierCreePar", fields: [createdById], references: [id])
 
   affectations   AffectationChantier[]
@@ -105,6 +116,7 @@ model Chantier {
   rapports       RapportExport[]
   meteoSnapshots MeteoSnapshot[]
   pointages      Pointage[]
+  actionsJournal ActionJournal[]
 
   @@map("chantiers")
 }
@@ -115,13 +127,13 @@ model AffectationChantier {
   id              String    @id @default(uuid())
   roleSurChantier Role      @map("role_sur_chantier")
   dateDebut       DateTime  @map("date_debut") @db.Date
-  dateFin         DateTime? @map("date_fin")   @db.Date
+  dateFin         DateTime? @map("date_fin") @db.Date
 
-  chantierId String      @map("id_chantier")
-  userId     String      @map("id_user")
+  chantierId String @map("id_chantier")
+  userId     String @map("id_user")
 
   chantier Chantier    @relation(fields: [chantierId], references: [id])
-  user     Utilisateur @relation(fields: [userId],     references: [id])
+  user     Utilisateur @relation(fields: [userId], references: [id])
 
   @@map("affectations_chantier")
 }
@@ -135,8 +147,8 @@ model Photo {
   storagePath String    @map("storage_path") @db.Text
   commentaire String?   @db.Text
 
-  chantierId String      @map("id_chantier")
-  takenById  String      @map("taken_by")
+  chantierId String @map("id_chantier")
+  takenById  String @map("taken_by")
 
   chantier Chantier    @relation(fields: [chantierId], references: [id])
   takenBy  Utilisateur @relation("PhotoPrise", fields: [takenById], references: [id])
@@ -152,10 +164,10 @@ model RapportExport {
   format     FormatExport
   type       String
 
-  chantierId   String      @map("id_chantier")
-  exportedById String      @map("exported_by")
+  chantierId   String @map("id_chantier")
+  exportedById String @map("exported_by")
 
-  chantier   Chantier    @relation(fields: [chantierId],   references: [id])
+  chantier   Chantier    @relation(fields: [chantierId], references: [id])
   exportedBy Utilisateur @relation(fields: [exportedById], references: [id])
 
   @@map("rapports_export")
@@ -175,7 +187,6 @@ model MeteoSnapshot {
   @@map("meteo_snapshots")
 }
 
-
 // ─── Pointage ─────────────────────────────────────────────────
 
 model Pointage {
@@ -183,15 +194,32 @@ model Pointage {
   date        DateTime @db.Date
   debut       DateTime
   fin         DateTime
-  duree       Float    // Stocké en heures (ex: 8.5)
+  duree       Float // Stocké en heures (ex: 8.5)
   commentaire String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
 
-  chantierId    String      @map("id_chantier")
-  utilisateurId String      @map("id_utilisateur")
+  chantierId    String @map("id_chantier")
+  utilisateurId String @map("id_utilisateur")
 
   chantier    Chantier    @relation(fields: [chantierId], references: [id])
   utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id])
 
   @@map("pointages")
+}
+
+// ─── ActionJournal ────────────────────────────────────────────
+
+model ActionJournal {
+  id        String            @id @default(uuid())
+  action    TypeActionJournal
+  details   String?           @db.Text
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  chantierId String @map("id_chantier")
+  auteurId   String @map("id_auteur")
+
+  chantier Chantier    @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  auteur   Utilisateur @relation(fields: [auteurId], references: [id], onDelete: Cascade)
+
+  @@map("action_journal")
 }

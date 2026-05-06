@@ -62,7 +62,7 @@ export async function PUT(
     if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé'    }, { status: 403 })
 
     const { id } = await params
-    const existing = await prisma.chantier.findUnique({ where: { id }, select: { id: true } })
+    const existing = await prisma.chantier.findUnique({ where: { id }, select: { id: true, statut: true, titre: true } })
     if (!existing) return NextResponse.json({ error: 'Chantier non trouvé' }, { status: 404 })
 
     const body = await req.json()
@@ -78,6 +78,18 @@ export async function PUT(
 
     if (statut && !titre && !client && !adresse) {
       const chantier = await prisma.chantier.update({ where: { id }, data: { statut: targetStatut } })
+      
+      if (existing.statut !== targetStatut) {
+        await prisma.actionJournal.create({
+          data: {
+            action: 'CHANGEMENT_STATUT',
+            chantierId: id,
+            auteurId: me.id,
+            details: `Statut passé de ${existing.statut} à ${targetStatut}`,
+          }
+        })
+      }
+
       return NextResponse.json(chantier)
     }
 
@@ -126,6 +138,16 @@ export async function PUT(
       include: { client: true, adresse: true },
     })
 
+    if (statut && existing.statut !== parseStatut(statut)) {
+      await prisma.actionJournal.create({
+        data: {
+          action: 'CHANGEMENT_STATUT',
+          chantierId: chantier.id,
+          auteurId: me.id,
+          details: `Statut passé de ${existing.statut} à ${parseStatut(statut)}`,
+        }
+      })
+    }
 
     return NextResponse.json(chantier)
 

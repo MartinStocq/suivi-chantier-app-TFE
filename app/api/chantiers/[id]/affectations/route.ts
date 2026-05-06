@@ -32,6 +32,15 @@ export async function POST(
       include: { user: true },
     })
 
+    await prisma.actionJournal.create({
+      data: {
+        action: 'AFFECTATION_OUVRIER',
+        chantierId,
+        auteurId: me.id,
+        details: `Affectation de ${affectation.user.nom}`,
+      }
+    })
+
     return NextResponse.json(affectation, { status: 201 })
 
   } catch (err) {
@@ -53,9 +62,22 @@ export async function DELETE(
     const { id: chantierId } = await params
     const { userId } = await req.json()
 
+    const userToErase = await prisma.utilisateur.findUnique({ where: { id: userId } })
+
     await prisma.affectationChantier.deleteMany({
       where: { chantierId, userId },
     })
+
+    if (userToErase) {
+      await prisma.actionJournal.create({
+        data: {
+          action: 'RETRAIT_OUVRIER',
+          chantierId,
+          auteurId: me.id,
+          details: `Retrait de ${userToErase.nom}`,
+        }
+      })
+    }
 
     return NextResponse.json({ message: 'Ouvrier retiré' })
 

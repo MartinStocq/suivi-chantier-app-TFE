@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    await prisma.actionJournal.create({
+      data: {
+        action: 'AJOUT_PHOTO',
+        chantierId,
+        auteurId: me.id,
+        details: `Ajout d'une photo ${type}`,
+      }
+    })
+
     return NextResponse.json(photo, { status: 201 })
 
   } catch (err) {

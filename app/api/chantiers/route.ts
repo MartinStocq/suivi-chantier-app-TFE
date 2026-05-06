@@ -109,6 +109,15 @@ export async function POST(req: NextRequest) {
       include: { client: true, adresse: true },
     })
 
+    await prisma.actionJournal.create({
+      data: {
+        action: 'CREATION_CHANTIER',
+        chantierId: chantier.id,
+        auteurId: me.id,
+        details: `Création du chantier "${chantier.titre}"`,
+      }
+    })
+
     return NextResponse.json(chantier, { status: 201 })
 
   } catch (err) {
