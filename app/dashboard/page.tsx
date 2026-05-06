@@ -211,7 +211,7 @@ export default async function Dashboard({
                   <h2 className="text-sm font-semibold text-gray-900">Mes heures</h2>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-[10px] font-bold uppercase tracking-tight">
                     <Clock size={10} />
-                    {weekHours}h cette semaine
+                    {weekHours.toFixed(2)}h cette semaine
                   </div>
                 </div>
                 <div className="p-5 space-y-4">
@@ -231,7 +231,7 @@ export default async function Dashboard({
                             </div>
                           </div>
                           <span className="text-xs font-black text-gray-700 tabular-nums bg-gray-50 px-2 py-1 rounded">
-                            {p.duree}h
+                            {p.duree.toFixed(2)}h
                           </span>
                         </div>
                       ))}
@@ -305,7 +305,7 @@ export default async function Dashboard({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-black text-gray-900">{lp.duree}h</p>
+                          <p className="text-xs font-black text-gray-900">{lp.duree.toFixed(2)}h</p>
                           <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
                             {new Date(lp.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}
                           </p>

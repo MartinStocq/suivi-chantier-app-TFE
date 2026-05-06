@@ -504,7 +504,7 @@ export default async function ChantierDetailPage({
                       <span className="font-medium text-gray-700">{p.utilisateur.nom.split(' ')[0]}</span>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-gray-900">{p.duree.toString().replace('.', ',')}h</p>
+                      <p className="font-bold text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
                       <p className="text-[9px] text-gray-400">{new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}</p>
                     </div>
                   </div>

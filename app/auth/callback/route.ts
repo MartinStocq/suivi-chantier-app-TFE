@@ -31,36 +31,64 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        const existingProfil = await prisma.utilisateur.findUnique({
-          where:  { id: user.id },
-          select: { approuve: true },
+        console.log(`[AUTH CALLBACK] Login for ${user.email} (ID: ${user.id})`)
+        
+        // 1. Chercher par ID (UUID Supabase)
+        let profil = await prisma.utilisateur.findUnique({
+          where: { id: user.id },
         })
 
-        if (!existingProfil) {
-          // FIX #6 — Nouveau compte Google → non approuvé, redirige vers attente
-          await prisma.utilisateur.create({
-            data: {
-              id:       user.id,
-              email:    user.email!,
-              nom:      user.user_metadata?.full_name ?? user.email!.split('@')[0],
-              role:     'OUVRIER',
-              approuve: false,
-            },
+        // 2. Si non trouvé par ID, chercher par email (cas de réinstallation ou changement de projet Supabase)
+        if (!profil) {
+          profil = await prisma.utilisateur.findUnique({
+            where: { email: user.email! },
           })
-          return NextResponse.redirect(`${origin}/attente-validation`)
+
+          if (profil) {
+            console.log(`[AUTH CALLBACK] User found by email, updating ID to ${user.id}`)
+            profil = await prisma.utilisateur.update({
+              where: { email: user.email! },
+              data:  { id: user.id },
+            })
+          }
         }
 
-        // FIX #6 — Compte existant mais non approuvé → attente
-        if (!existingProfil.approuve) {
+        // 3. Si toujours rien, créer le profil
+        if (!profil) {
+          console.log(`[AUTH CALLBACK] Creating new profile for ${user.email}`)
+          try {
+            profil = await prisma.utilisateur.create({
+              data: {
+                id:       user.id,
+                email:    user.email!,
+                nom:      user.user_metadata?.full_name ?? user.email!.split('@')[0],
+                role:     'OUVRIER',
+                approuve: false,
+              },
+            })
+          } catch (err) {
+            console.error(`[AUTH CALLBACK] Error creating profile:`, err)
+            return NextResponse.redirect(`${origin}/login?error=db`)
+          }
+        }
+
+        // 4. Vérifier l'approbation
+        if (!profil.approuve) {
+          console.log(`[AUTH CALLBACK] Account not approved, redirecting to attente-validation`)
           return NextResponse.redirect(`${origin}/attente-validation`)
         }
       }
 
+      console.log(`[AUTH CALLBACK] Success, redirecting to ${next}`)
       return NextResponse.redirect(`${origin}${next}`)
+    } else {
+      console.error('[AUTH CALLBACK] Exchange error:', error.message)
+      return NextResponse.redirect(`${origin}/login?error=exchange&msg=${encodeURIComponent(error.message)}`)
     }
+  } else {
+    console.warn('[AUTH CALLBACK] No code found in URL')
+    return NextResponse.redirect(`${origin}/login?error=nocode`)
   }
-
-  return NextResponse.redirect(`${origin}/login?error=auth`)
 }
 
 
