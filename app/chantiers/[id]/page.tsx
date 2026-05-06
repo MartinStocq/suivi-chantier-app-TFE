@@ -203,16 +203,18 @@ export default async function ChantierDetailPage({
                   </span>
                 </h2>
               </div>
-              <PhotoUpload
-                chantierId={chantier.id}
-                takenById={user.id}
-              
-              />
+              {!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE') && (
+                <PhotoUpload
+                  chantierId={chantier.id}
+                  takenById={user.id}
+                />
+              )}
             </div>
             <ChantierPhotosGrid
               photos={chantier.photos}
               totalPhotos={chantier._count.photos}
               chantierId={id}
+              canDelete={!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE')}
             />
           </div>
 

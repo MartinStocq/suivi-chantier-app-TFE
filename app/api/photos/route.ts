@@ -15,6 +15,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Données manquantes' }, { status: 400 })
     }
 
+    const chantier = await prisma.chantier.findUnique({ where: { id: chantierId } })
+    if (!chantier) return NextResponse.json({ error: 'Chantier introuvable' }, { status: 404 })
+
+    // Un ouvrier ne peut pas ajouter de photo sur un chantier terminé
+    if (me.role === 'OUVRIER' && chantier.statut === 'TERMINE') {
+      return NextResponse.json({ error: 'Action impossible : le chantier est terminé' }, { status: 403 })
+    }
+
     // Un ouvrier ne peut uploader que pour lui-même
     if (me.role !== 'CHEF_CHANTIER' && me.id !== takenById) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })

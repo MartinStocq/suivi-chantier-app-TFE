@@ -19,6 +19,14 @@ export async function addPhotoAction(data: AddPhotoInput) {
   const me = await getCurrentUser()
   if (!me) throw new Error('Non authentifié')
 
+  const chantier = await prisma.chantier.findUnique({ where: { id: data.chantierId } })
+  if (!chantier) throw new Error('Chantier introuvable')
+
+  // Un ouvrier ne peut pas ajouter de photo sur un chantier terminé
+  if (me.role === 'OUVRIER' && chantier.statut === 'TERMINE') {
+    throw new Error('Action impossible : le chantier est terminé')
+  }
+
   // Un ouvrier ne peut uploader que pour lui-même
   if (me.role !== 'CHEF_CHANTIER' && me.id !== data.takenById) {
     throw new Error('Accès refusé')
@@ -52,6 +60,14 @@ export async function deletePhotoAction(photoId: string, chantierId: string) {
 
   const photo = await prisma.photo.findUnique({ where: { id: photoId } })
   if (!photo) return
+
+  const chantier = await prisma.chantier.findUnique({ where: { id: chantierId } })
+  if (!chantier) throw new Error('Chantier introuvable')
+
+  // Un ouvrier ne peut pas supprimer de photo sur un chantier terminé
+  if (me.role === 'OUVRIER' && chantier.statut === 'TERMINE') {
+    throw new Error('Action impossible : le chantier est terminé')
+  }
 
   // Un ouvrier ne peut supprimer que ses propres photos
   if (me.role !== 'CHEF_CHANTIER' && photo.takenById !== me.id) {
