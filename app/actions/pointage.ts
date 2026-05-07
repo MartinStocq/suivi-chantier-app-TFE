@@ -36,6 +36,12 @@ export async function addPointageAction(data: AddPointageInput) {
   const diffMs = finDateTime.getTime() - debutDateTime.getTime()
   const duree = diffMs / (1000 * 60 * 60)
 
+  // Validation commentaire
+  const cleanCommentaire = data.commentaire?.trim() || null
+  if (cleanCommentaire && cleanCommentaire.length > 500) {
+    throw new Error('Le commentaire est trop long (max 500 caractères)')
+  }
+
   // Vérifier si l'utilisateur est affecté au chantier (optionnel mais recommandé)
   if (user.role === 'OUVRIER') {
     const affectation = await prisma.affectationChantier.findFirst({
@@ -55,7 +61,7 @@ export async function addPointageAction(data: AddPointageInput) {
       debut: debutDateTime,
       fin: finDateTime,
       duree,
-      commentaire: data.commentaire || null,
+      commentaire: cleanCommentaire,
       chantierId: data.chantierId,
       utilisateurId: user.id
     },

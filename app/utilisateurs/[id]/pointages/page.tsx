@@ -130,7 +130,7 @@ export default async function UtilisateurPointagesPage({
                       {m.month} {m.year}
                     </h3>
                     <span className="text-sm font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-xl">
-                      {m.total.toFixed(2)}h prestées
+                      {m.total.toFixed(2).replace('.', ',')}h prestées
                     </span>
                   </div>
 
@@ -152,7 +152,7 @@ export default async function UtilisateurPointagesPage({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2)}h</p>
+                          <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
                           {p.commentaire && (
                             <p className="text-[10px] text-gray-400 mt-1 italic truncate max-w-[200px]" title={p.commentaire}>
                               &quot;{p.commentaire}&quot;

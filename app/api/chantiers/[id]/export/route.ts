@@ -65,18 +65,28 @@ export async function GET(
   }
 }
 
+function sanitizeCSVField(val: any): string {
+  if (val === null || val === undefined) return ''
+  const str = String(val)
+  // Prévention de l'injection de formules CSV (Excel/Sheets)
+  if (['=', '+', '-', '@'].some(char => str.startsWith(char))) {
+    return `'${str}`
+  }
+  return str
+}
+
 function generateCSV(chantier: any, fileName: string) {
   const lines: string[] = []
 
   // --- HEADER ---
-  lines.push(`RAPPORT D'ACTIVITÉ;${chantier.titre.toUpperCase()};`)
+  lines.push(`RAPPORT D'ACTIVITÉ;${sanitizeCSVField(chantier.titre.toUpperCase())};`)
   lines.push(`DATE D'EXPORT;${new Date().toLocaleDateString('fr-BE')};`)
   lines.push('')
 
   // --- CLIENT & CHANTIER ---
   lines.push('SECTION 1 : INFORMATIONS GÉNÉRALES')
-  lines.push(`Client;${chantier.client.nom};`)
-  lines.push(`Adresse;${chantier.adresse.rue} ${chantier.adresse.numero}, ${chantier.adresse.codePostal} ${chantier.adresse.ville};`)
+  lines.push(`Client;${sanitizeCSVField(chantier.client.nom)};`)
+  lines.push(`Adresse;${sanitizeCSVField(`${chantier.adresse.rue} ${chantier.adresse.numero}, ${chantier.adresse.codePostal} ${chantier.adresse.ville}`)};`)
   lines.push(`Statut Actuel;${chantier.statut.replace('_', ' ')};`)
   lines.push(`Date de Début;${new Date(chantier.dateDebutPrevue).toLocaleDateString('fr-BE')};`)
   if (chantier.dateFinPrevue) {
@@ -88,7 +98,7 @@ function generateCSV(chantier: any, fileName: string) {
   lines.push('SECTION 2 : ÉQUIPE AFFECTÉE')
   lines.push('NOM;EMAIL;RÔLE SUR LE CHANTIER')
   chantier.affectations.forEach((a: any) => {
-    lines.push(`${a.user.nom.toUpperCase()};${a.user.email};${a.roleSurChantier.replace('_', ' ')}`)
+    lines.push(`${sanitizeCSVField(a.user.nom.toUpperCase())};${sanitizeCSVField(a.user.email)};${a.roleSurChantier.replace('_', ' ')}`)
   })
   lines.push('')
 
@@ -101,13 +111,13 @@ function generateCSV(chantier: any, fileName: string) {
     const dateStr = new Date(p.date).toLocaleDateString('fr-BE')
     const debutStr = new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })
     const finStr = new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })
-    const dureeStr = p.duree.toString().replace('.', ',')
-    lines.push(`${p.utilisateur.nom.toUpperCase()};${dateStr};${debutStr};${finStr};${dureeStr};${p.commentaire || '-'}`)
+    const dureeStr = p.duree.toFixed(2).replace('.', ',')
+    lines.push(`${sanitizeCSVField(p.utilisateur.nom.toUpperCase())};${dateStr};${debutStr};${finStr};${dureeStr};${sanitizeCSVField(p.commentaire || '-')}`)
     totalHeures += p.duree
   })
   
   lines.push('')
-  lines.push(`TOTAL GÉNÉRAL;;;;${totalHeures.toString().replace('.', ',')};HEURES CUMULÉES`)
+  lines.push(`TOTAL GÉNÉRAL;;;;${totalHeures.toFixed(2).replace('.', ',')};HEURES CUMULÉES`)
 
   const csvContent = lines.join('\n')
   const buffer = Buffer.from('\uFEFF' + csvContent, 'utf-8')
@@ -217,7 +227,7 @@ async function generatePDF(chantier: any, fileName: string) {
     new Date(p.date).toLocaleDateString('fr-BE'),
     new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
     new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' }),
-    `${p.duree.toString().replace('.', ',')} h`,
+    `${p.duree.toFixed(2).replace('.', ',')} h`,
     p.commentaire || '-'
   ])
 
@@ -239,7 +249,7 @@ async function generatePDF(chantier: any, fileName: string) {
   doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(...primaryColor)
-  doc.text(`TOTAL GÉNÉRAL DES HEURES CUMULÉES : ${totalHeures.toString().replace('.', ',')} HEURES`, 105, currentY + 6.5, { align: 'center' })
+  doc.text(`TOTAL GÉNÉRAL DES HEURES CUMULÉES : ${totalHeures.toFixed(2).replace('.', ',')} HEURES`, 105, currentY + 6.5, { align: 'center' })
   doc.setTextColor(0)
   
   currentY += 25

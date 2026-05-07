@@ -40,13 +40,19 @@ export async function addPhotoAction(data: AddPhotoInput) {
     if (!affectation) throw new Error("Vous n'êtes pas affecté à ce chantier")
   }
 
+  // Validation commentaire
+  const cleanCommentaire = data.commentaire?.trim() || null
+  if (cleanCommentaire && cleanCommentaire.length > 500) {
+    throw new Error('Le commentaire est trop long (max 500 caractères)')
+  }
+
   await prisma.photo.create({
     data: {
       chantierId:  data.chantierId,
       takenById:   data.takenById,
       type:        data.type as TypePhoto,
       storagePath: data.storagePath,
-      commentaire: data.commentaire ?? null,
+      commentaire: cleanCommentaire,
     },
   })
 

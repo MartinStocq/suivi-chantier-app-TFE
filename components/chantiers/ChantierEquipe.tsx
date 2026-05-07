@@ -39,7 +39,7 @@ export default function ChantierEquipe({ affectations, isChef }: Props) {
               <div className="flex items-center gap-3">
                 {(a.totalHeures !== undefined && a.totalHeures > 0) && (
                   <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">
-                    {a.totalHeures}h
+                    {a.totalHeures.toFixed(2).replace('.', ',')}h
                   </span>
                 )}
                 <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md font-medium">
