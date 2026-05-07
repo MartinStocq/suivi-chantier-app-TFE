@@ -98,20 +98,25 @@ export async function PUT(
       return NextResponse.json(chantier)
     }
 
-    if (!titre)               return NextResponse.json({ error: 'Le titre est requis'          }, { status: 400 })
-    if (!dateDebutPrevue)     return NextResponse.json({ error: 'La date de début est requise' }, { status: 400 })
-    if (!client?.nom)         return NextResponse.json({ error: 'Le nom du client est requis'  }, { status: 400 })
-    if (!adresse?.rue)        return NextResponse.json({ error: 'La rue est requise'           }, { status: 400 })
-    if (!adresse?.numero)     return NextResponse.json({ error: 'Le numéro est requis'         }, { status: 400 })
-    if (!adresse?.codePostal) return NextResponse.json({ error: 'Le code postal est requis'   }, { status: 400 })
-    if (!adresse?.ville)      return NextResponse.json({ error: 'La ville est requise'         }, { status: 400 })
+    if (!titre?.trim())               return NextResponse.json({ error: 'Le titre est requis'          }, { status: 400 })
+    if (titre.trim().length > 150)    return NextResponse.json({ error: 'Le titre est trop long (max 150 caractères)' }, { status: 400 })
+    if (description?.trim() && description.trim().length > 2000) {
+      return NextResponse.json({ error: 'La description est trop longue (max 2000 caractères)' }, { status: 400 })
+    }
+    if (!dateDebutPrevue)             return NextResponse.json({ error: 'La date de début est requise' }, { status: 400 })
+    if (!client?.nom?.trim())         return NextResponse.json({ error: 'Le nom du client est requis'  }, { status: 400 })
+    if (client.nom.trim().length > 100) return NextResponse.json({ error: 'Le nom du client est trop long (max 100 caractères)' }, { status: 400 })
+    if (!adresse?.rue?.trim())        return NextResponse.json({ error: 'La rue est requise'           }, { status: 400 })
+    if (!adresse?.numero?.trim())     return NextResponse.json({ error: 'Le numéro est requis'         }, { status: 400 })
+    if (!adresse?.codePostal?.trim()) return NextResponse.json({ error: 'Le code postal est requis'   }, { status: 400 })
+    if (!adresse?.ville?.trim())      return NextResponse.json({ error: 'La ville est requise'         }, { status: 400 })
 
     let lat = adresse.latitude ? parseFloat(adresse.latitude) : null
     let lon = adresse.longitude ? parseFloat(adresse.longitude) : null
 
     // Si pas de coordonnées manuelles, on géocode
     if (!lat || !lon) {
-      const query = `${adresse.rue} ${adresse.numero}, ${adresse.ville}, ${adresse.pays || 'Belgique'}`
+      const query = `${adresse.rue.trim()} ${adresse.numero.trim()}, ${adresse.ville.trim()}, ${adresse.pays?.trim() || 'Belgique'}`
       const coords = await getCoordinates(query)
       if (coords) {
         lat = coords.latitude
@@ -122,21 +127,27 @@ export async function PUT(
     const chantier = await prisma.chantier.update({
       where: { id: id },
       data: {
-        titre,
-        description:     description ?? null,
+        titre:           titre.trim(),
+        description:     description?.trim() ?? null,
         statut:          parseStatut(statut),
         dateDebutPrevue: new Date(dateDebutPrevue),
         dateFinPrevue:   dateFinPrevue ? new Date(dateFinPrevue) : null,
-        client:  { update: { nom: client.nom, telephone: client.telephone ?? null, email: client.email ?? null } },
+        client:  { 
+          update: { 
+            nom:       client.nom.trim(), 
+            telephone: client.telephone?.trim() ?? null, 
+            email:     client.email?.trim()     ?? null 
+          } 
+        },
         adresse: { 
           update: { 
-            rue: adresse.rue, 
-            numero: adresse.numero, 
-            codePostal: adresse.codePostal, 
-            ville: adresse.ville, 
-            pays: adresse.pays ?? 'Belgique',
-            latitude: lat,
-            longitude: lon,
+            rue:        adresse.rue.trim(), 
+            numero:     adresse.numero.trim(), 
+            codePostal: adresse.codePostal.trim(), 
+            ville:      adresse.ville.trim(), 
+            pays:       adresse.pays?.trim() ?? 'Belgique',
+            latitude:   lat,
+            longitude:  lon,
           } 
         },
       },

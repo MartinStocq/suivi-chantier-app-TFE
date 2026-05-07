@@ -8,6 +8,7 @@ interface Photo {
   id: string
   storagePath: string
   type: string
+  signedUrl?: string
 }
 
 interface Props {
@@ -19,8 +20,9 @@ interface Props {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-function photoUrl(path: string) {
-  return `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`
+function photoUrl(photo: Photo) {
+  if (photo.signedUrl) return photo.signedUrl
+  return `${SUPABASE_URL}/storage/v1/object/public/photos/${photo.storagePath}`
 }
 
 function PhotoCard({ photo, chantierId, canDelete = true }: { photo: Photo; chantierId: string; canDelete?: boolean }) {
@@ -43,7 +45,7 @@ function PhotoCard({ photo, chantierId, canDelete = true }: { photo: Photo; chan
     <div className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={photoUrl(photo.storagePath)}
+        src={photoUrl(photo)}
         alt={photo.type}
         className="w-full h-full object-cover"
       />

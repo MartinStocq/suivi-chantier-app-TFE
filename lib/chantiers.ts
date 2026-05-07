@@ -24,7 +24,7 @@ export async function autoUpdateChantierStatuts() {
       statut: StatutChantier.EN_ATTENTE,
       dateDebutPrevue: { lte: endOfToday },
     },
-    select: { id: true, titre: true },
+    select: { id: true, titre: true, createdById: true },
   })
 
   if (chantiersToStart.length > 0) {
@@ -34,6 +34,15 @@ export async function autoUpdateChantierStatuts() {
     })
 
     for (const c of chantiersToStart) {
+      await prisma.actionJournal.create({
+        data: {
+          action: 'CHANGEMENT_STATUT',
+          chantierId: c.id,
+          auteurId: c.createdById, 
+          details: `Démarrage automatique (Date de début atteinte)`,
+        }
+      }).catch(err => console.error(`[AutoStatut] Journal error for ${c.titre}:`, err))
+
       await notifyProjectMembers(
         c.id,
         "Démarrage automatique",
@@ -50,7 +59,7 @@ export async function autoUpdateChantierStatuts() {
       statut: StatutChantier.EN_COURS,
       dateFinPrevue: { lt: startOfToday },
     },
-    select: { id: true, titre: true },
+    select: { id: true, titre: true, createdById: true },
   })
 
   if (chantiersToFinish.length > 0) {
@@ -60,6 +69,15 @@ export async function autoUpdateChantierStatuts() {
     })
 
     for (const c of chantiersToFinish) {
+      await prisma.actionJournal.create({
+        data: {
+          action: 'CHANGEMENT_STATUT',
+          chantierId: c.id,
+          auteurId: c.createdById,
+          details: `Clôture automatique (Date de fin dépassée)`,
+        }
+      }).catch(err => console.error(`[AutoStatut] Journal error for ${c.titre}:`, err))
+
       await notifyProjectMembers(
         c.id,
         "Clôture automatique",

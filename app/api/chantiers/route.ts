@@ -47,9 +47,15 @@ export async function POST(req: NextRequest) {
     const { titre, description, statut, dateDebutPrevue, dateFinPrevue, client, adresse } = body
 
     if (!titre?.trim())               return NextResponse.json({ error: 'Le titre est requis'           }, { status: 400 })
-    if (titre.trim().length > 150)    return NextResponse.json({ error: 'Le titre est trop long'        }, { status: 400 })
+    if (titre.trim().length > 150)    return NextResponse.json({ error: 'Le titre est trop long (max 150 caractères)' }, { status: 400 })
+    if (description?.trim() && description.trim().length > 2000) {
+      return NextResponse.json({ error: 'La description est trop longue (max 2000 caractères)' }, { status: 400 })
+    }
     if (!dateDebutPrevue)             return NextResponse.json({ error: 'La date de début est requise'  }, { status: 400 })
     if (!client?.nom?.trim())         return NextResponse.json({ error: 'Le nom du client est requis'   }, { status: 400 })
+    if (client.nom.trim().length > 100) {
+      return NextResponse.json({ error: 'Le nom du client est trop long (max 100 caractères)' }, { status: 400 })
+    }
     if (!adresse?.rue?.trim())        return NextResponse.json({ error: 'La rue est requise'            }, { status: 400 })
     if (!adresse?.numero?.trim())     return NextResponse.json({ error: 'Le numéro est requis'          }, { status: 400 })
     if (!adresse?.codePostal?.trim()) return NextResponse.json({ error: 'Le code postal est requis'    }, { status: 400 })

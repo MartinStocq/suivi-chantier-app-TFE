@@ -17,6 +17,9 @@ export async function addPointageAction(data: AddPointageInput) {
   if (!user) throw new Error('Non authentifié')
 
   const dateObj = new Date(data.date)
+  if (isNaN(dateObj.getTime())) {
+    throw new Error('Date invalide')
+  }
   
   // Créer des objets DateTime complets pour debut et fin
   const [hDebut, mDebut] = data.debut.split(':').map(Number)
@@ -76,7 +79,7 @@ export async function addPointageAction(data: AddPointageInput) {
       action: 'POINTAGE',
       chantierId: data.chantierId,
       auteurId: user.id,
-      details: `Pointage de ${duree.toString().replace('.', ',')}h effectué sur le chantier "${pointage.chantier.titre}"`,
+      details: `Pointage de ${duree.toFixed(2).replace('.', ',')}h effectué sur le chantier "${pointage.chantier.titre}"`,
     }
   })
 

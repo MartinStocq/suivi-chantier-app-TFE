@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { autoUpdateChantierStatuts } from '@/lib/chantiers'
 import { autoUpdateMeteo, getForecast, checkWeatherFavorability } from '@/lib/meteo'
+import { getSignedPhotoUrl } from '@/lib/storage'
 import Link from 'next/link'
 import StatutBadge from '@/components/ui/StatutBadge'
 import ChantierEquipe from '@/components/chantiers/ChantierEquipe'
@@ -50,6 +51,14 @@ export default async function ChantierDetailPage({
     },
   })
   if (!chantier) notFound()
+
+  // Génération des URLs signées pour les photos
+  const photosWithSignedUrls = await Promise.all(
+    chantier.photos.map(async (p) => ({
+      ...p,
+      signedUrl: await getSignedPhotoUrl(p.storagePath)
+    }))
+  )
 
   // Calcul du total d'heures
   const statsHeures = await prisma.pointage.aggregate({
@@ -244,7 +253,7 @@ export default async function ChantierDetailPage({
               )}
             </div>
             <ChantierPhotosGrid
-              photos={chantier.photos}
+              photos={photosWithSignedUrls as any}
               totalPhotos={chantier._count.photos}
               chantierId={id}
               canDelete={!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE')}

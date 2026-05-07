@@ -1,7 +1,6 @@
 // proxy.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -36,7 +35,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 2. Connecté → vérifie approbation (avant tout redirect)
+  // 2. Connecté → vérifie approbation (Temporairement désactivé via Prisma car Edge runtime ne supporte pas 'crypto')
+  // TODO: Utiliser les user_metadata de Supabase pour éviter Prisma en middleware
+  /*
   if (user && !isPublicRoute) {
     const profil = await prisma.utilisateur.findUnique({
       where: { id: user.id },
@@ -47,6 +48,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/attente-validation', request.url))
     }
   }
+  */
 
   // 3. Connecté + approuvé → redirige depuis login/register vers dashboard
   if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {

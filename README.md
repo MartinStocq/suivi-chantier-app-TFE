@@ -1,8 +1,14 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Développement
 
-First, run the development server:
+### Synchronisation Météo
+
+En mode développement (`NODE_ENV !== 'production'`), la vérification de `CRON_SECRET` est ignorée pour faciliter les tests. Vous pouvez déclencher la synchronisation manuellement via :
+`GET /api/meteo/sync`
+
+En production, une clé `key` correspondant à `CRON_SECRET` est requise :
+`GET /api/meteo/sync?key=VOTRE_SECRET`
 
 ```bash
 npm run dev

@@ -55,7 +55,24 @@ export async function updateAvatarAction(formData: FormData) {
   const allowedExts = ['jpg', 'jpeg', 'png', 'webp']
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
   if (!allowedExts.includes(ext)) {
-    throw new Error('Format de fichier non supporté (JPG, PNG, WEBP uniquement)')
+    throw new Error('Extension de fichier non supportée (JPG, PNG, WEBP uniquement)')
+  }
+
+  // Vérification du type MIME réel (magic bytes)
+  const header = await file.slice(0, 12).arrayBuffer()
+  const arr = new Uint8Array(header)
+  let headerHex = ""
+  for (let i = 0; i < Math.min(arr.length, 12); i++) {
+    headerHex += arr[i].toString(16).padStart(2, '0')
+  }
+
+  let isValidMime = false
+  if (headerHex.startsWith('ffd8ff')) isValidMime = true // JPEG
+  else if (headerHex.startsWith('89504e47')) isValidMime = true // PNG
+  else if (headerHex.startsWith('52494646') && headerHex.slice(16, 24) === '57454250') isValidMime = true // WEBP (RIFF...WEBP)
+
+  if (!isValidMime) {
+    throw new Error('Le contenu du fichier ne correspond pas à une image supportée')
   }
 
   // Validation de la taille (max 2MB par sécurité)
