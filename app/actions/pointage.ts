@@ -3,18 +3,25 @@
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { TypePointage } from '@prisma/client'
 
 interface AddPointageInput {
   chantierId: string
   date: string
   debut: string // HH:mm
   fin: string   // HH:mm
+  type?: TypePointage
+  utilisateurId?: string // Utilisé par le Chef pour pointer pour un ouvrier
   commentaire?: string
 }
 
 export async function addPointageAction(data: AddPointageInput) {
-  const user = await getCurrentUser()
-  if (!user) throw new Error('Non authentifié')
+  const me = await getCurrentUser()
+  if (!me) throw new Error('Non authentifié')
+
+  const targetUserId = (me.role === 'CHEF_CHANTIER' && data.utilisateurId) 
+    ? data.utilisateurId 
+    : me.id
 
   const dateObj = new Date(data.date)
   if (isNaN(dateObj.getTime())) {
@@ -45,45 +52,53 @@ export async function addPointageAction(data: AddPointageInput) {
     throw new Error('Le commentaire est trop long (max 500 caractères)')
   }
 
-  // Vérifier si l'utilisateur est affecté au chantier (optionnel mais recommandé)
-  if (user.role === 'OUVRIER') {
+  // Vérifier si l'utilisateur cible est affecté au chantier (optionnel mais recommandé)
+  // Sauf pour les congés/maladie qui pourraient ne pas être liés à un chantier spécifique ? 
+  // Mais ici on demande un chantierId, donc on garde la logique.
+  if (me.role === 'OUVRIER' || (me.role === 'CHEF_CHANTIER' && targetUserId !== me.id)) {
     const affectation = await prisma.affectationChantier.findFirst({
       where: {
         chantierId: data.chantierId,
-        userId: user.id
+        userId: targetUserId
       }
     })
-    if (!affectation) {
-      throw new Error("Vous n'êtes pas affecté à ce chantier")
+    // Si c'est du travail normal, l'affectation est requise. 
+    // Pour maladie/conge, on pourrait être plus souple, mais restons cohérents avec le modèle actuel.
+    if (!affectation && (!data.type || data.type === 'TRAVAIL')) {
+      throw new Error("L'utilisateur n'est pas affecté à ce chantier")
     }
   }
 
   const pointage = await prisma.pointage.create({
     data: {
       date: dateObj,
+      type: data.type || 'TRAVAIL',
       debut: debutDateTime,
       fin: finDateTime,
       duree,
       commentaire: cleanCommentaire,
       chantierId: data.chantierId,
-      utilisateurId: user.id
+      utilisateurId: targetUserId
     },
     include: {
-      chantier: { select: { titre: true } }
+      chantier: { select: { titre: true } },
+      utilisateur: { select: { nom: true } }
     }
   })
 
   // Création d'une entrée dans le journal
+  const typeLabel = data.type ? data.type.toLowerCase().replace('_', ' ') : 'travail'
   await prisma.actionJournal.create({
     data: {
       action: 'POINTAGE',
       chantierId: data.chantierId,
-      auteurId: user.id,
-      details: `Pointage de ${duree.toFixed(2).replace('.', ',')}h effectué sur le chantier "${pointage.chantier.titre}"`,
+      auteurId: me.id,
+      details: `Pointage (${typeLabel}) de ${duree.toFixed(2).replace('.', ',')}h effectué pour ${pointage.utilisateur.nom} sur "${pointage.chantier.titre}"`,
     }
   })
 
   revalidatePath('/dashboard')
   revalidatePath(`/chantiers/${data.chantierId}`)
   revalidatePath('/journal')
+  revalidatePath(`/utilisateurs/${targetUserId}/pointages`)
 }
