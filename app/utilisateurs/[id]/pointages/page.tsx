@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Avatar from '@/components/ui/Avatar'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
+import ExportOuvrierButton from '@/components/equipe/ExportOuvrierButton'
+import DeletePointageButton from '@/components/chantiers/DeletePointageButton'
 import { ArrowLeft, Clock, CalendarDays } from 'lucide-react'
 
 export default async function UtilisateurPointagesPage({
@@ -40,7 +42,7 @@ export default async function UtilisateurPointagesPage({
 
   if (!membre) notFound()
 
-  // Calculer les heures par mois (seulement si pas de filtrage spécifique qui casse la vue mensuelle, ou garder par mois quand même)
+  // Calculer les heures par mois
   const pointagesByMonth: Record<string, { month: string, year: number, total: number, pointages: any[] }> = {}
   membre.pointages.forEach(p => {
     const d = new Date(p.date)
@@ -67,17 +69,24 @@ export default async function UtilisateurPointagesPage({
 
       <main className="flex-1 px-8 py-8 max-w-3xl mx-auto w-full">
 
-        {/* Retour */}
+        {/* Retour et Actions */}
         <div className="flex items-center justify-between mb-6">
           <Link
-            href="/dashboard"
+            href={`/utilisateurs/${id}`}
             className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition"
           >
             <ArrowLeft size={13} />
-            Retour au dashboard
+            Retour à la fiche
           </Link>
 
-          {/* Recherche par date */}
+          {user.role === 'CHEF_CHANTIER' && (
+            <ExportOuvrierButton userId={membre.id} nom={membre.nom} />
+          )}
+        </div>
+
+        {/* Filtres par date */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <p className="text-[10px] font-bold text-gray-400 uppercase">Filtrer l&apos;historique</p>
           <form className="flex items-center gap-2">
             <input 
               type="date" 
@@ -138,7 +147,7 @@ export default async function UtilisateurPointagesPage({
                     {m.pointages.map((p) => (
                       <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{p.chantier.titre}</p>
+                          <p className="text-sm font-bold text-gray-900">{p.chantier?.titre || 'Absence générale'}</p>
                           <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1 font-medium">
                             <span className="bg-white px-1.5 py-0.5 rounded border border-gray-100 text-gray-500">
                               {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit' })}
@@ -151,8 +160,13 @@ export default async function UtilisateurPointagesPage({
                             </span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
+                        <div className="text-right flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-3">
+                            <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
+                            {user.role === 'CHEF_CHANTIER' && (
+                              <DeletePointageButton pointageId={p.id} />
+                            )}
+                          </div>
                           {p.commentaire && (
                             <p className="text-[10px] text-gray-400 mt-1 italic truncate max-w-[200px]" title={p.commentaire}>
                               &quot;{p.commentaire}&quot;

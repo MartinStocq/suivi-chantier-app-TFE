@@ -88,3 +88,11 @@ export async function autoUpdateChantierStatuts() {
     console.log(`[AutoStatut] ${chantiersToFinish.length} chantier(s) passé(s) en TERMINE : ${chantiersToFinish.map(c => c.titre).join(', ')}`)
   }
 }
+
+export async function getUserBusyDates(userId: string) {
+  const pointages = await prisma.pointage.findMany({
+    where: { utilisateurId: userId },
+    select: { date: true }
+  })
+  return pointages.map(p => p.date.toISOString().split('T')[0])
+}

@@ -127,28 +127,20 @@ model MeteoSnapshot {
 }
 
 model Pointage {
-  id            String      @id @default(uuid())
-  date          DateTime    @db.Date
-  type          TypePointage @default(TRAVAIL)
+  id            String       @id @default(uuid())
+  date          DateTime     @db.Date
   debut         DateTime
   fin           DateTime
   duree         Float
   commentaire   String?
-  createdAt     DateTime    @default(now()) @map("created_at")
-  chantierId    String?     @map("id_chantier")
-  utilisateurId String      @map("id_utilisateur")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  chantierId    String?      @map("id_chantier")
+  utilisateurId String       @map("id_utilisateur")
+  type          TypePointage @default(TRAVAIL)
   chantier      Chantier?    @relation(fields: [chantierId], references: [id])
-  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+  utilisateur   Utilisateur  @relation(fields: [utilisateurId], references: [id])
 
   @@map("pointages")
-}
-
-enum TypePointage {
-  TRAVAIL
-  MALADIE
-  CONGE_PAYE
-  CONGE_SANS_SOLDE
-  INTEMPERIE
 }
 
 model ActionJournal {
@@ -175,6 +167,14 @@ model Notification {
   user      Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+enum TypePointage {
+  TRAVAIL
+  MALADIE
+  CONGE_PAYE
+  CONGE_SANS_SOLDE
+  INTEMPERIE
 }
 
 enum Role {

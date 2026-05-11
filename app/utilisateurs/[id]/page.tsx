@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Avatar from '@/components/ui/Avatar'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
+import ExportOuvrierButton from '@/components/equipe/ExportOuvrierButton'
 import { ArrowLeft, Mail, Phone, HardHat, Wrench, Calendar, ClipboardList, Clock } from 'lucide-react'
 
 export default async function UtilisateurFichePage({
@@ -40,14 +41,20 @@ export default async function UtilisateurFichePage({
 
       <main className="flex-1 px-8 py-8 max-w-3xl mx-auto w-full">
 
-        {/* Retour */}
-        <Link
-          href="/utilisateurs"
-          className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition mb-6"
-        >
-          <ArrowLeft size={13} />
-          Retour à l&apos;équipe
-        </Link>
+        {/* Retour et Actions */}
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/utilisateurs"
+            className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 transition"
+          >
+            <ArrowLeft size={13} />
+            Retour à l&apos;équipe
+          </Link>
+
+          {user.role === 'CHEF_CHANTIER' && (
+            <ExportOuvrierButton userId={membre.id} nom={membre.nom} />
+          )}
+        </div>
 
         {/* Carte profil */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">

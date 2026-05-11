@@ -219,15 +219,21 @@ export default async function JournalPage({
                             }).format(date)}
                           </div>
 
-                          {/* Lien vers le chantier */}
-                          <Link 
-                            href={`/chantiers/${action.chantier.id}`}
-                            className="flex items-center gap-2 py-1.5 px-3 bg-gray-50 text-gray-600 rounded-lg text-[11px] font-black hover:bg-gray-900 hover:text-white transition-colors group/link"
-                          >
-                            <span className="opacity-60 font-bold">Chantier:</span>
-                            <span>{action.chantier.titre}</span>
-                            <ArrowRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
-                          </Link>
+                          {/* Lien vers le chantier (si présent) */}
+                          {action.chantier ? (
+                            <Link 
+                              href={`/chantiers/${action.chantier.id}`}
+                              className="flex items-center gap-2 py-1.5 px-3 bg-gray-50 text-gray-600 rounded-lg text-[11px] font-black hover:bg-gray-900 hover:text-white transition-colors group/link"
+                            >
+                              <span className="opacity-60 font-bold">Chantier:</span>
+                              <span>{action.chantier.titre}</span>
+                              <ArrowRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-2 py-1.5 px-3 bg-gray-50 text-gray-400 rounded-lg text-[11px] font-medium italic">
+                              Aucun chantier lié
+                            </div>
+                          )}
 
                         </div>
                       </div>

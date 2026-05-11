@@ -64,39 +64,40 @@ export default async function Dashboard({
       })
     : []
 
-  // Données spécifiques chef : Dernier pointage par ouvrier
+  // Données spécifiques chef : Dernier pointage par ouvrier et liste pour pointage
   let workersLatestPointages: any[] = []
+  let allWorkers: { id: string, nom: string }[] = []
   if (user.role === 'CHEF_CHANTIER') {
     const workers = await prisma.utilisateur.findMany({
       where: { role: 'OUVRIER', approuve: true },
-      select: { 
-        id: true, 
-        nom: true, 
-        avatarPath: true,
+      include: {
         pointages: {
           orderBy: { date: 'desc' },
           take: 1,
-          include: { chantier: { select: { titre: true } } }
+          include: {
+            chantier: {
+              select: { titre: true }
+            }
+          }
         }
       }
     })
     workersLatestPointages = workers.filter(w => w.pointages.length > 0)
+    allWorkers = workers.map(w => ({ id: w.id, nom: w.nom }))
   }
 
-  // Données spécifiques ouvrier
+  // Données spécifiques ouvrier/chef pour le formulaire de pointage
   let assignedChantiers: { 
     id: string; 
     titre: string; 
     dateDebutPrevue: string | Date; 
     dateFinPrevue?: string | Date | null 
   }[] = []
-  let recentPointages: any[] = []
-  let weekHours = 0
 
-  if (user.role === 'OUVRIER') {
+  if (user.role === 'OUVRIER' || user.role === 'CHEF_CHANTIER') {
     assignedChantiers = (await prisma.chantier.findMany({
       where: {
-        affectations: { some: { userId: user.id } },
+        ...(user.role === 'OUVRIER' ? { affectations: { some: { userId: user.id } } } : {}),
         statut: 'EN_COURS'
       },
       select: { 
@@ -106,7 +107,12 @@ export default async function Dashboard({
         dateFinPrevue: true
       }
     })) as any[]
+  }
 
+  let recentPointages: any[] = []
+  let weekHours = 0
+
+  if (user.role === 'OUVRIER') {
     recentPointages = await prisma.pointage.findMany({
       where: { utilisateurId: user.id },
       orderBy: { date: 'desc' },
@@ -157,10 +163,13 @@ export default async function Dashboard({
           {/* Colonne Gauche / Principale */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Pointage pour l'ouvrier */}
-            {user.role === 'OUVRIER' && (
-              <PointageForm chantiers={assignedChantiers} />
-            )}
+            {/* Pointage */}
+            <PointageForm 
+              chantiers={assignedChantiers} 
+              currentUserRole={user.role}
+              ouvriers={user.role === 'CHEF_CHANTIER' ? allWorkers : undefined}
+              currentUserId={user.id}
+            />
 
             {/* Chantiers récents */}
             <div className="bg-white border border-gray-200 rounded-xl">
@@ -222,7 +231,7 @@ export default async function Dashboard({
                       {recentPointages.map((p: any) => (
                         <div key={p.id} className="flex items-start justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
                           <div>
-                            <p className="text-xs font-semibold text-gray-900">{p.chantier.titre}</p>
+                            <p className="text-xs font-semibold text-gray-900">{p.chantier?.titre || 'Absence générale'}</p>
                             <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5 font-medium">
                               <CalendarDays size={10} />
                               {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}
@@ -300,7 +309,7 @@ export default async function Dashboard({
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{w.nom}</p>
                             <p className="text-[10px] text-gray-500 font-medium">
-                              {lp.chantier.titre}
+                              {lp.chantier?.titre || 'Absence générale'}
                             </p>
                           </div>
                         </div>
