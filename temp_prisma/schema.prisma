@@ -1,14 +1,4 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model Utilisateur {
-  id              String                @id @default(uuid())
+git 
   nom             String
   email           String                @unique
   role            Role                  @default(OUVRIER)
