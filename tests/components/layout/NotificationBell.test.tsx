@@ -50,7 +50,9 @@ describe('NotificationBell', () => {
     })
     
     const bellButton = screen.getByRole('button')
-    fireEvent.click(bellButton)
+    await act(async () => {
+      fireEvent.click(bellButton)
+    })
     
     expect(screen.getByText('Notifications')).toBeDefined()
     expect(screen.getByText('Nouveau chantier')).toBeDefined()
@@ -64,10 +66,14 @@ describe('NotificationBell', () => {
       render(<NotificationBell />)
     })
     
-    fireEvent.click(screen.getByRole('button'))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'))
+    })
     
     const notification = screen.getByText('Nouveau chantier')
-    fireEvent.click(notification)
+    await act(async () => {
+      fireEvent.click(notification)
+    })
     
     expect(actions.markAsRead).toHaveBeenCalledWith('1')
   })
@@ -79,10 +85,14 @@ describe('NotificationBell', () => {
       render(<NotificationBell />)
     })
     
-    fireEvent.click(screen.getByRole('button'))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'))
+    })
     
     const markAllButton = screen.getByText('Tout marquer comme lu')
-    fireEvent.click(markAllButton)
+    await act(async () => {
+      fireEvent.click(markAllButton)
+    })
     
     expect(actions.markAllAsRead).toHaveBeenCalled()
   })

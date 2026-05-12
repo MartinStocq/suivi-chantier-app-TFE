@@ -79,7 +79,7 @@ describe('Dashboard Page', () => {
     expect(screen.getByText(/Bienvenue, Jean Chef/i)).toBeInTheDocument()
     expect(screen.getByText('Chantier A')).toBeInTheDocument()
     expect(screen.getByText(/Nouveau chantier/i)).toBeInTheDocument()
-    expect(screen.queryByTestId('pointage-form')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pointage-form')).toBeInTheDocument()
   })
 
   it('renders correctly for OUVRIER', async () => {

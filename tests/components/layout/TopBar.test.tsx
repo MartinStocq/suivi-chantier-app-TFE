@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { expect, test, vi, describe } from 'vitest'
 import TopBar from '@/components/layout/TopBar'
+import { LayoutProvider } from '@/components/layout/LayoutContext'
 
 // Mock dependencies
 vi.mock('@/lib/auth', () => ({
@@ -24,12 +25,18 @@ vi.mock('@/components/ui/Avatar', () => ({
   default: ({ nom }: { nom: string }) => <div data-testid="avatar" aria-label={nom} />
 }))
 
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/dashboard'),
+}))
+
 describe('TopBar', () => {
   test('renders title and subtitle', async () => {
-    // TopBar is a server component, we need to await it if it's async
-    // In Vitest/JSDOM, we can often just await the result of the component call if it's a function
     const Result = await TopBar({ title: 'Mon Titre', subtitle: 'Mon Sous-titre' })
-    render(Result)
+    render(
+      <LayoutProvider>
+        {Result}
+      </LayoutProvider>
+    )
     
     expect(screen.getByText('Mon Titre')).toBeDefined()
     expect(screen.getByText('Mon Sous-titre')).toBeDefined()
@@ -41,7 +48,11 @@ describe('TopBar', () => {
 
   test('renders only title when subtitle is missing', async () => {
     const Result = await TopBar({ title: 'Titre Seul' })
-    render(Result)
+    render(
+      <LayoutProvider>
+        {Result}
+      </LayoutProvider>
+    )
     
     expect(screen.getByText('Titre Seul')).toBeDefined()
     expect(screen.queryByText('Mon Sous-titre')).toBeNull()

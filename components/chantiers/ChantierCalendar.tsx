@@ -109,29 +109,29 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-b border-gray-100 bg-white gap-3">
+        <div className="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-start">
           <button
             onClick={prev}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={16} />
           </button>
-          <span className="text-sm font-semibold text-gray-900 w-40 text-center select-none">
+          <span className="text-sm font-semibold text-gray-900 min-w-[120px] text-center select-none">
             {MOIS[month]} {year}
           </span>
           <button
             onClick={next}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
           >
-            <ChevronRight size={15} />
+            <ChevronRight size={16} />
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
           <button
             onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()) }}
-            className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500
+            className="text-[10px] md:text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500
                        hover:bg-gray-50 transition-colors"
           >
             Aujourd&apos;hui
@@ -139,7 +139,7 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
           {isChef && (
             <Link
               href="/chantiers/new"
-              className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg
+              className="inline-flex items-center gap-1 text-[10px] md:text-xs px-2.5 py-1 rounded-lg
                          bg-gray-900 text-white hover:bg-gray-700 transition-colors"
             >
               <Plus size={12} />
@@ -154,7 +154,7 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
         {JOURS.map((j, i) => (
           <div
             key={j}
-            className={`py-2 text-center text-xs font-medium uppercase tracking-wider
+            className={`py-2 text-center text-[10px] md:text-xs font-medium uppercase tracking-wider
                         ${i >= 5 ? 'text-gray-300' : 'text-gray-400'}`}
           >
             {j}
@@ -176,7 +176,7 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
             <div
               key={i}
               className={[
-                'min-h-[90px] border-b border-r border-gray-100 p-1.5 transition-colors',
+                'min-h-[60px] md:min-h-[90px] border-b border-r border-gray-100 p-1 md:p-1.5 transition-colors',
                 !day           ? 'bg-gray-50/80'    : '',
                 isWeekend && day ? 'bg-gray-50/50'  : 'bg-white',
                 isLastCol      ? 'border-r-0'       : '',
@@ -185,10 +185,10 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
               {day && (
                 <>
                   {/* Numéro du jour */}
-                  <div className="flex justify-end mb-1">
+                  <div className="flex justify-end mb-0.5 md:mb-1">
                     <span className={[
-                      'w-6 h-6 flex items-center justify-center rounded-full',
-                      'text-xs transition-colors select-none',
+                      'w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full',
+                      'text-[10px] md:text-xs transition-colors select-none',
                       isToday
                         ? 'bg-gray-900 text-white font-semibold'
                         : 'text-gray-400 font-normal hover:bg-gray-100 cursor-default',
@@ -213,21 +213,21 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
                           href={`/chantiers/${c.id}`}
                           title={`${c.titre}${c.client ? ' — ' + c.client.nom : ''}${showWeather ? ' (' + Math.round(dayForecast.max) + '°C)' : ''}`}
                           className={[
-                            'flex items-center gap-1 px-1.5 py-0.5 rounded border',
-                            'text-[10px] truncate hover:opacity-70 transition-opacity',
+                            'flex items-center gap-1 px-1 py-0.5 md:px-1.5 md:py-0.5 rounded border',
+                            'text-[8px] md:text-[10px] truncate hover:opacity-70 transition-opacity',
                             style.pill,
                           ].join(' ')}
                         >
                           <span className={`w-1 h-1 rounded-full shrink-0 ${style.dot}`} />
                           {showWeather && (
-                            <span className="shrink-0">{getWeatherIcon(dayForecast.code)}</span>
+                            <span className="shrink-0 text-[8px] md:text-[10px]">{getWeatherIcon(dayForecast.code)}</span>
                           )}
-                          <span className="truncate leading-none">{c.titre}</span>
+                          <span className="truncate leading-none hidden sm:inline">{c.titre}</span>
                         </Link>
                       )
                     })}
                     {items.length > 3 && (
-                      <p className="text-[10px] text-gray-400 px-1">+{items.length - 3} autres</p>
+                      <p className="text-[8px] md:text-[10px] text-gray-400 px-0.5 md:px-1">+{items.length - 3}</p>
                     )}
                   </div>
                 </>
@@ -238,11 +238,11 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
       </div>
 
       {/* ── Légende ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-5 px-5 py-2.5 border-t border-gray-100 bg-gray-50/50">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 border-t border-gray-100 bg-gray-50/50">
         {Object.entries(S).map(([key, s]) => (
           <div key={key} className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${s.dot}`} />
-            <span className="text-xs text-gray-500">{s.label}</span>
+            <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${s.dot}`} />
+            <span className="text-[10px] md:text-xs text-gray-500">{s.label}</span>
           </div>
         ))}
       </div>

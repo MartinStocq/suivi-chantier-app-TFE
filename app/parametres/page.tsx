@@ -21,7 +21,7 @@ export default async function ParametresPage() {
   return (
     <AppLayout>
       <TopBar title="Paramètres" subtitle="Mon profil" />
-      <main className="flex-1 px-8 py-8 flex justify-center">
+      <main className="flex-1 px-4 md:px-8 py-6 md:py-8 flex justify-center">
         <div className="w-full max-w-xl">
           <ProfilForm
             nom={utilisateur.nom}

@@ -106,21 +106,21 @@ export default async function JournalPage({
     <AppLayout>
       <TopBar 
         title="Journal d'activité" 
-        subtitle="Historique complet des actions effectuées sur tous les chantiers" 
+        subtitle="Historique complet des actions" 
       />
 
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
         <div className="max-w-4xl mx-auto">
           
           <div className="flex items-center gap-2 text-gray-400 mb-6">
             <History size={18} />
-            <span className="text-sm font-medium uppercase tracking-wider">Fil d&apos;actualité</span>
+            <span className="text-[10px] md:text-sm font-bold uppercase tracking-wider">Fil d&apos;actualité</span>
           </div>
 
           {/* Filtres par Utilisateur */}
           <div className="mb-8">
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3 px-1">Filtrer par membre</p>
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
               <Link 
                 href="/journal"
                 className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${!activeUserId ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}

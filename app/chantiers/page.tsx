@@ -64,11 +64,11 @@ export default async function ChantiersPage() {
         title="Chantiers"
         subtitle={`${chantiers.length} chantier${chantiers.length > 1 ? 's' : ''}`}
       />
-      <main className="flex-1 px-8 py-8 space-y-6">
+      <main className="flex-1 px-4 md:px-8 py-6 md:py-8 space-y-6">
 
         {/* Chantiers en cours */}
         {enCours.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {enCours.map(c => {
               const chantierData = chantiersWithForecast.find(cf => cf.id === c.id);
               const cur = chantierData?.currentWeather;
@@ -116,10 +116,10 @@ export default async function ChantiersPage() {
 
               return (
                 <Link key={c.id} href={`/chantiers/${c.id}`}>
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between hover:bg-blue-100 transition cursor-pointer">
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-blue-100 transition cursor-pointer gap-4">
                     <div className="flex items-center gap-4">
                       {showWeather && (
-                        <div className="flex flex-col items-center justify-center bg-white/50 w-12 h-12 rounded-lg border border-blue-100" title={tooltip}>
+                        <div className="flex flex-col items-center justify-center bg-white/50 w-12 h-12 rounded-lg border border-blue-100 shrink-0" title={tooltip}>
                           <span className="text-xl leading-none">
                             {getWeatherIcon(displayWeatherCode)}
                           </span>
@@ -129,28 +129,28 @@ export default async function ChantiersPage() {
                         </div>
                       )}
                       {!showWeather && (
-                        <div className="w-12 h-12 rounded-lg bg-blue-100/50 flex items-center justify-center border border-blue-100/20">
+                        <div className="w-12 h-12 rounded-lg bg-blue-100/50 flex items-center justify-center border border-blue-100/20 shrink-0">
                            <Calendar size={18} className="text-blue-400" />
                         </div>
                       )}
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                            <p className="text-xs text-blue-400 font-medium uppercase tracking-wider">En cours</p>
+                            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">En cours</p>
                             {isRealTime && <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" title="Direct"></span>}
                         </div>
-                        <p className="text-sm font-semibold text-blue-900">{c.titre}</p>
+                        <p className="text-sm font-semibold text-blue-900 truncate">{c.titre}</p>
                         {c.client && (
-                          <p className="text-xs text-blue-400 mt-0.5">{c.client.nom}</p>
+                          <p className="text-xs text-blue-400 mt-0.5 truncate">{c.client.nom}</p>
                         )}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-blue-500 tabular-nums">
+                    <div className="text-left sm:text-right border-t sm:border-t-0 border-blue-100 pt-3 sm:pt-0">
+                      <p className="text-xs font-semibold text-blue-500 tabular-nums">
                         Aujourd&apos;hui, {new Date().toLocaleDateString('fr-BE', {
                           day: '2-digit', month: 'short'
                         })}
                       </p>
-                      <p className="text-[10px] text-blue-300 mt-1">{c.adresse.ville}</p>
+                      <p className="text-[10px] text-blue-400 mt-1">{c.adresse.ville}</p>
                     </div>
                   </div>
                 </Link>

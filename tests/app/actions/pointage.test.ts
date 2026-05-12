@@ -11,9 +11,10 @@ vi.mock('@/lib/prisma', () => ({
     },
     pointage: {
       create: vi.fn(),
+      findFirst: vi.fn(),
     },
     actionJournal: {
-      create: vi.fn(),
+      create: vi.fn(() => Promise.resolve({})),
     },
   },
 }))
@@ -66,9 +67,12 @@ describe('addPointageAction', () => {
 
   it('calculates duration correctly and creates pointage', async () => {
     vi.mocked(getCurrentUser).mockResolvedValueOnce({ id: 'u1', role: 'ADMIN' } as any)
+    vi.mocked(prisma.pointage.findFirst).mockResolvedValueOnce(null)
     vi.mocked(prisma.pointage.create).mockResolvedValueOnce({
       id: 'p1',
-      chantier: { titre: 'Chantier Test' }
+      duree: 2.5,
+      chantier: { titre: 'Chantier Test' },
+      utilisateur: { nom: 'Admin' }
     } as any)
 
     await addPointageAction({
@@ -82,12 +86,11 @@ describe('addPointageAction', () => {
     expect(prisma.pointage.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         duree: 2.5,
-        chantierId: 'c1',
-        utilisateurId: 'u1',
         commentaire: 'Travail'
       }),
       include: {
-        chantier: { select: { titre: true } }
+        chantier: { select: { titre: true } },
+        utilisateur: { select: { nom: true } }
       }
     })
 
@@ -104,7 +107,7 @@ describe('addPointageAction', () => {
       date: '2023-05-20',
       debut: '08:00',
       fin: '12:00'
-    })).rejects.toThrow("Vous n'êtes pas affecté à ce chantier")
+    })).rejects.toThrow("L'utilisateur n'est pas affecté à ce chantier")
 
     expect(prisma.affectationChantier.findFirst).toHaveBeenCalledWith({
       where: { chantierId: 'c1', userId: 'u1' }

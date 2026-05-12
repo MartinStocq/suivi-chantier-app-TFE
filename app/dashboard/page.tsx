@@ -140,10 +140,10 @@ export default async function Dashboard({
     <AppLayout>
       <TopBar title="Dashboard" subtitle={`Bienvenue, ${user.nom}`} />
 
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4 mb-8">
           {[
             { label: 'Total chantiers', value: total,     color: 'border-gray-200'    },
             { label: 'En cours',        value: enCours,   color: 'border-blue-200'    },

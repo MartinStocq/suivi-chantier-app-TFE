@@ -60,7 +60,7 @@ export default async function EquipePage({
         subtitle={`${totalOuvriers + totalChefs} membre${totalOuvriers + totalChefs > 1 ? 's' : ''}`}
       />
 
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 md:px-8 py-6 md:py-8">
 
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 mb-8">
@@ -74,9 +74,9 @@ export default async function EquipePage({
           </div>
         </div>
 
-        {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-xl">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-4">
+        {/* Liste / Table */}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center gap-4">
             <h2 className="text-sm font-semibold text-gray-900 shrink-0">Tous les membres</h2>
 
             <div className="flex items-center gap-2">
@@ -99,8 +99,8 @@ export default async function EquipePage({
               ))}
             </div>
 
-            <div className="ml-auto">
-              <SearchBar key={q} placeholder="Rechercher par nom ou email.." paramKey="q" />
+            <div className="md:ml-auto w-full md:w-auto">
+              <SearchBar key={q} placeholder="Rechercher..." paramKey="q" />
             </div>
           </div>
 
@@ -112,57 +112,85 @@ export default async function EquipePage({
               </p>
             </div>
           ) : (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Membre</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Rôle</th>
-                  {isChef && <th className="px-5 py-3" />}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Membre</th>
+                      <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Rôle</th>
+                      {isChef && <th className="px-5 py-3" />}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {sorted.map(m => (
+                      <tr key={m.id} className="hover:bg-gray-50 transition group">
+                        <td className="px-5 py-3.5">
+                          <Link href={`/utilisateurs/${m.id}`} className="flex items-center gap-3">
+                            <Avatar nom={m.nom} avatarPath={m.avatarPath} size={36} />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 group-hover:underline">{m.nom}</p>
+                              <p className="text-xs text-gray-400">{m.email}</p>
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border font-medium ${
+                            m.role === 'CHEF_CHANTIER'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-gray-50 text-gray-600 border-gray-200'
+                          }`}>
+                            {m.role === 'CHEF_CHANTIER' ? <HardHat size={11} /> : <Wrench size={11} />}
+                            {m.role === 'CHEF_CHANTIER' ? 'Chef de chantier' : 'Ouvrier'}
+                          </span>
+                        </td>
+                        {isChef && (
+                          <td className="px-5 py-3.5">
+                            {m.id !== user.id && (
+                              <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
+                                <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                                <SupprimerMembreButton userId={m.id} nom={m.nom} />
+                              </div>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile List */}
+              <div className="md:hidden divide-y divide-gray-50">
                 {sorted.map(m => (
-                  <tr key={m.id} className="hover:bg-gray-50 transition group">
-
-                    {/* Membre — cliquable vers la fiche */}
-                    <td className="px-5 py-3.5">
-                      <Link href={`/utilisateurs/${m.id}`} className="flex items-center gap-3">
-                        <Avatar nom={m.nom} avatarPath={m.avatarPath} size={36} />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 group-hover:underline">{m.nom}</p>
-                          <p className="text-xs text-gray-400">{m.email}</p>
-                        </div>
-                      </Link>
-                    </td>
-
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border font-medium ${
-                        m.role === 'CHEF_CHANTIER'
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'bg-gray-50 text-gray-600 border-gray-200'
-                      }`}>
-                        {m.role === 'CHEF_CHANTIER'
-                          ? <><HardHat size={11} /> Chef de chantier</>
-                          : <><Wrench size={11} /> Ouvrier</>
-                        }
-                      </span>
-                    </td>
-
-                    {isChef && (
-                      <td className="px-5 py-3.5">
-                        {m.id !== user.id && (
-                          <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
+                  <div key={m.id} className="p-4 space-y-3">
+                    <Link href={`/utilisateurs/${m.id}`} className="flex items-center gap-3">
+                      <Avatar nom={m.nom} avatarPath={m.avatarPath} size={40} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{m.nom}</p>
+                        <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                      </div>
+                    </Link>
+                    <div className="flex items-center justify-between gap-2">
+                       <span className={`inline-flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider ${
+                          m.role === 'CHEF_CHANTIER'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-gray-50 text-gray-600 border-gray-200'
+                        }`}>
+                          {m.role === 'CHEF_CHANTIER' ? 'Chef' : 'Ouvrier'}
+                        </span>
+                        {isChef && m.id !== user.id && (
+                          <div className="flex items-center gap-2">
                             <ChangerRoleButton userId={m.id} roleActuel={m.role} />
                             <SupprimerMembreButton userId={m.id} nom={m.nom} />
                           </div>
                         )}
-                      </td>
-                    )}
-
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       </main>

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { expect, test, vi, describe } from 'vitest'
 import Sidebar from '@/components/layout/Sidebar'
 import { usePathname } from 'next/navigation'
+import { LayoutProvider } from '@/components/layout/LayoutContext'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -11,7 +12,11 @@ vi.mock('next/navigation', () => ({
 describe('Sidebar', () => {
   test('renders all links for CHEF_CHANTIER', () => {
     vi.mocked(usePathname).mockReturnValue('/dashboard')
-    render(<Sidebar role="CHEF_CHANTIER" />)
+    render(
+      <LayoutProvider>
+        <Sidebar role="CHEF_CHANTIER" />
+      </LayoutProvider>
+    )
     
     expect(screen.getByText('Dashboard')).toBeDefined()
     expect(screen.getByText('Chantiers')).toBeDefined()
@@ -23,7 +28,11 @@ describe('Sidebar', () => {
 
   test('hides Nouveau and Journal for OUVRIER', () => {
     vi.mocked(usePathname).mockReturnValue('/dashboard')
-    render(<Sidebar role="OUVRIER" />)
+    render(
+      <LayoutProvider>
+        <Sidebar role="OUVRIER" />
+      </LayoutProvider>
+    )
     
     expect(screen.getByText('Dashboard')).toBeDefined()
     expect(screen.getByText('Chantiers')).toBeDefined()
@@ -36,7 +45,11 @@ describe('Sidebar', () => {
   test('highlights active link', () => {
     vi.mocked(usePathname).mockReturnValue('/chantiers')
     
-    render(<Sidebar role="CHEF_CHANTIER" />)
+    render(
+      <LayoutProvider>
+        <Sidebar role="CHEF_CHANTIER" />
+      </LayoutProvider>
+    )
     
     const chantiersLink = screen.getByText('Chantiers').closest('a')
     expect(chantiersLink?.className).toContain('bg-gray-100')

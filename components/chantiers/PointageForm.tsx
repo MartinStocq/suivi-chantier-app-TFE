@@ -54,20 +54,27 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
   const isChef = currentUserRole === 'CHEF_CHANTIER'
   const isAbsence = selectedType !== 'TRAVAIL'
 
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // Charger les dates occupées et initialiser la première date libre
   useEffect(() => {
     const userId = isChef && targetUserId ? targetUserId : currentUserId
     if (userId) {
       getUserBusyDatesAction(userId).then(dates => {
         setBusyDates(dates)
-        const todayStr = new Date().toISOString().split('T')[0]
+        const todayStr = formatDate(new Date())
         if (!startDate) {
           if (dates.includes(todayStr)) {
             let d = new Date()
-            while (dates.includes(d.toISOString().split('T')[0])) {
+            while (dates.includes(formatDate(d))) {
               d.setDate(d.getDate() + 1)
             }
-            setStartDate(d.toISOString().split('T')[0])
+            setStartDate(formatDate(d))
           } else {
             setStartDate(todayStr)
           }
@@ -133,7 +140,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
   }
 
   const handleDateClick = (d: Date) => {
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = formatDate(d)
     if (busyDates.includes(dateStr)) return
 
     if (!isAbsence) {
@@ -157,7 +164,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
       let cur = new Date(start)
       let hasBusy = false
       while (cur <= d) {
-        if (busyDates.includes(cur.toISOString().split('T')[0])) hasBusy = true
+        if (busyDates.includes(formatDate(cur))) hasBusy = true
         cur.setDate(cur.getDate() + 1)
       }
 
@@ -172,10 +179,10 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
     }
   }
 
-  const isSelected = (d: Date) => d.toISOString().split('T')[0] === startDate
-  const isSelectedEnd = (d: Date) => endDate && d.toISOString().split('T')[0] === endDate
+  const isSelected = (d: Date) => formatDate(d) === startDate
+  const isSelectedEnd = (d: Date) => endDate && formatDate(d) === endDate
   const isInRange = (d: Date) => {
-    const dateStr = d.toISOString().split('T')[0]
+    const dateStr = formatDate(d)
     if (endDate) return dateStr > startDate && dateStr < endDate
     if (hoverDate && isAbsence && startDate && !endDate) {
        return (dateStr > startDate && dateStr <= hoverDate) || (dateStr < startDate && dateStr >= hoverDate)
@@ -193,7 +200,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
       {/* Header Formulaire */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+      <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
         <div className="flex items-center gap-3">
           <Clock size={18} className="text-gray-500" />
           <div>
@@ -205,12 +212,12 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="p-4 md:px-6 md:py-6 space-y-6">
         {/* TYPE & COLLABORATEUR */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-3">
             <label className="text-xs font-semibold text-gray-700">Type d&apos;activité</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2">
               {types.map(t => {
                 const Icon = t.icon
                 const isActive = selectedType === t.id
@@ -219,7 +226,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
                     key={t.id}
                     type="button"
                     onClick={() => { setSelectedType(t.id); setEndDate(null); }}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all
+                    className={`flex items-center justify-center lg:justify-start gap-2 px-3 py-2.5 rounded-lg border text-[11px] md:text-sm transition-all
                       ${isActive 
                         ? `${t.bg} ${t.border} ${t.color} font-semibold ring-1 ring-offset-0 ring-current/20` 
                         : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
@@ -331,7 +338,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
         {/* DETAILS CHANTIER & HEURES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
           <div className="space-y-3">
-            <label className="text-xs font-semibold text-gray-700">Chantier</label>
+            <label htmlFor="chantierId" className="text-xs font-semibold text-gray-700">Chantier</label>
             <select
               id="chantierId"
               name="chantierId"
@@ -347,19 +354,19 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-3">
-              <label className="text-xs font-semibold text-gray-700">Heure début</label>
-              <input type="time" name="debut" defaultValue="08:00" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+              <label htmlFor="debut" className="text-xs font-semibold text-gray-700">Heure début</label>
+              <input id="debut" type="time" name="debut" defaultValue="08:00" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
             </div>
             <div className="space-y-3">
-              <label className="text-xs font-semibold text-gray-700">Heure fin</label>
-              <input type="time" name="fin" defaultValue="16:30" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
+              <label htmlFor="fin" className="text-xs font-semibold text-gray-700">Heure fin</label>
+              <input id="fin" type="time" name="fin" defaultValue="16:30" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
             </div>
           </div>
         </div>
 
         {/* Commentaire */}
         <div className="space-y-3">
-          <label className="text-xs font-semibold text-gray-700">Observations</label>
+          <label htmlFor="commentaire" className="text-xs font-semibold text-gray-700">Observations</label>
           <textarea
             id="commentaire"
             name="commentaire"
