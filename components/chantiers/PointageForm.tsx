@@ -1,8 +1,21 @@
 'use client'
 
-import { useState, useTransition, useEffect, useCallback } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { addPointageAction, getUserBusyDatesAction } from '@/app/actions/pointage'
-import { Clock, Loader2, CheckCircle2, User, Activity, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react'
+import { 
+  Clock, 
+  Loader2, 
+  User, 
+  Calendar as CalendarIcon, 
+  ChevronLeft, 
+  ChevronRight, 
+  ArrowRight,
+  Briefcase,
+  Stethoscope,
+  Palmtree,
+  CloudRain,
+  Info
+} from 'lucide-react'
 
 interface Chantier {
   id: string
@@ -170,108 +183,102 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
     return false
   }
 
-  const typeStyles: Record<string, string> = {
-    TRAVAIL: 'bg-blue-600 text-white shadow-blue-200',
-    MALADIE: 'bg-amber-500 text-white shadow-amber-200',
-    CONGE_PAYE: 'bg-emerald-500 text-white shadow-emerald-200',
-    INTEMPERIE: 'bg-red-500 text-white shadow-red-200',
-  }
+  const types = [
+    { id: 'TRAVAIL', label: 'Travail', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
+    { id: 'MALADIE', label: 'Maladie', icon: Stethoscope, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+    { id: 'CONGE_PAYE', label: 'Congé', icon: Palmtree, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { id: 'INTEMPERIE', label: 'Intempérie', icon: CloudRain, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
+  ]
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xl">
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
       {/* Header Formulaire */}
-      <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 rounded-lg">
-            <Clock size={20} className="text-blue-600" />
-          </div>
+          <Clock size={18} className="text-gray-500" />
           <div>
-            <h2 className="text-base font-black text-gray-900 leading-none">Pointage d&apos;activité</h2>
-            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 tracking-wider">
-              {isChef ? 'Gestion administrative' : 'Enregistrement de terrain'}
+            <h2 className="text-sm font-semibold text-gray-900">Enregistrer une activité</h2>
+            <p className="text-[10px] text-gray-500 font-medium">
+              {isChef ? 'Mode administrateur' : 'Saisie quotidienne'}
             </p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-6 space-y-8">
-        {/* 1. TYPE & COLLABORATEUR */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-7">
-            <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">
-              1. Choisir le type
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: 'TRAVAIL', label: 'Travail', emoji: '💼' },
-                { id: 'MALADIE', label: 'Maladie', emoji: '🤒' },
-                { id: 'CONGE_PAYE', label: 'Congé', emoji: '🏖️' },
-                { id: 'INTEMPERIE', label: 'Météo', emoji: '⛈️' },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => { setSelectedType(t.id); setEndDate(null); }}
-                  className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border-2 transition-all active:scale-95
-                    ${selectedType === t.id 
-                      ? `${typeStyles[t.id]} border-transparent shadow-lg` 
-                      : 'bg-gray-50 border-gray-50 text-gray-500 hover:border-gray-200 hover:bg-white'}`}
-                >
-                  <span className="text-lg">{t.emoji}</span>
-                  <span className="text-[10px] font-black uppercase">{t.label}</span>
-                </button>
-              ))}
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        {/* TYPE & COLLABORATEUR */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-gray-700">Type d&apos;activité</label>
+            <div className="grid grid-cols-2 gap-2">
+              {types.map(t => {
+                const Icon = t.icon
+                const isActive = selectedType === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => { setSelectedType(t.id); setEndDate(null); }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border text-sm transition-all
+                      ${isActive 
+                        ? `${t.bg} ${t.border} ${t.color} font-semibold ring-1 ring-offset-0 ring-current/20` 
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    <Icon size={16} />
+                    <span>{t.label}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          <div className="lg:col-span-5">
-            {isChef && ouvriers && (
-              <>
-                <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">
-                  2. Collaborateur
-                </label>
+          {isChef && ouvriers && (
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-gray-700">Collaborateur</label>
+              <div className="relative">
                 <select
                   value={targetUserId}
                   onChange={(e) => { setTargetUserId(e.target.value); setStartDate(''); setEndDate(null); }}
-                  className="w-full h-[76px] px-4 bg-gray-50 border-2 border-gray-50 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all appearance-none"
+                  className="w-full h-11 pl-10 pr-4 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none"
                 >
                   <option value={currentUserId}>Moi-même</option>
                   {ouvriers.map(o => <option key={o.id} value={o.id}>{o.nom}</option>)}
                 </select>
-              </>
-            )}
-          </div>
+                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 2. CALENDRIER */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">
-              3. Sélectionner la date {isAbsence && 'ou période'}
+        {/* CALENDRIER */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-gray-700">
+              Date ou période sélectionnée
             </label>
-            <div className="flex items-center gap-4 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-               <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"/><span className="text-[9px] font-bold text-gray-500 uppercase">Libre</span></div>
-               <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-400"/><span className="text-[9px] font-bold text-gray-500 uppercase">Pris</span></div>
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full border border-gray-200 bg-white"/><span className="text-[10px] text-gray-500">Libre</span></div>
+               <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-100 border border-red-200"/><span className="text-[10px] text-gray-500">Déjà pointé</span></div>
             </div>
           </div>
           
-          <div className="bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-inner">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50 bg-gray-50/30">
-              <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/30">
+              <p className="text-xs font-bold text-gray-900">
                 {currentMonth.toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' })}
               </p>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth()-1)))} className="p-2 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"><ChevronLeft size={16}/></button>
-                <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth()+1)))} className="p-2 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-gray-100 transition-all"><ChevronRight size={16}/></button>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth()-1)))} className="p-1.5 hover:bg-white rounded-md transition-colors"><ChevronLeft size={16}/></button>
+                <button type="button" onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth()+1)))} className="p-1.5 hover:bg-white rounded-md transition-colors"><ChevronRight size={16}/></button>
               </div>
             </div>
             
             <div className="grid grid-cols-7">
-              {['LUN','MAR','MER','JEU','VEN','SAM','DIM'].map(d => (
-                <div key={d} className="py-3 text-center text-[9px] font-black text-gray-300 border-b border-gray-50">{d}</div>
+              {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d => (
+                <div key={d} className="py-2 text-center text-[10px] font-medium text-gray-400 border-b border-gray-50">{d}</div>
               ))}
               {daysInMonth(currentMonth).map((d, i) => {
-                if (!d) return <div key={i} className="aspect-square bg-gray-50/30" />
+                if (!d) return <div key={i} className="aspect-square bg-gray-50/20" />
                 const dateStr = d.toISOString().split('T')[0]
                 const isBusy = busyDates.includes(dateStr)
                 const start = isSelected(d)
@@ -286,31 +293,20 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
                     onMouseEnter={() => setHoverDate(dateStr)}
                     onMouseLeave={() => setHoverDate(null)}
                     onClick={() => handleDateClick(d)}
-                    className={`relative aspect-square flex items-center justify-center text-xs font-bold transition-all border-[0.5px] border-gray-100
+                    className={`relative aspect-square flex items-center justify-center text-xs transition-all
                       ${isBusy 
-                        ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
+                        ? 'bg-red-50/30 text-gray-300 cursor-not-allowed' 
                         : (start || end)
-                          ? 'bg-blue-600 text-white z-20 shadow-md rounded-xl scale-110'
+                          ? 'bg-blue-600 text-white font-bold z-10 shadow-sm rounded-lg scale-95'
                           : range
-                            ? 'bg-blue-50 text-blue-600 border-blue-100'
-                            : 'bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:z-10'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                       }
+                      ${!isBusy && !start && !end && !range ? 'border-[0.5px] border-gray-100' : ''}
                     `}
                   >
-                    <span className="relative z-10">{d.getDate()}</span>
-                    
-                    {/* Indicateurs d'état */}
-                    {isBusy && (
-                      <span className="absolute bottom-2 w-1 h-1 bg-red-400 rounded-full" />
-                    )}
-                    {!isBusy && !start && !end && !range && (
-                       <span className="absolute top-2 right-2 w-1 h-1 bg-emerald-400 rounded-full opacity-50" />
-                    )}
-                    
-                    {/* Effet de sélection de période (continuité) */}
-                    {range && (
-                      <div className="absolute inset-0 bg-blue-500/10" />
-                    )}
+                    <span>{d.getDate()}</span>
+                    {isBusy && <div className="absolute top-1 right-1 w-1 h-1 bg-red-300 rounded-full" />}
                   </button>
                 )
               })}
@@ -318,78 +314,83 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
           </div>
 
           {/* Résumé de la sélection */}
-          <div className="mt-4 flex items-center gap-3 p-4 bg-blue-50/50 border border-blue-100 rounded-xl">
-             <div className="flex-1">
-                <p className="text-[9px] font-black text-blue-400 uppercase leading-none mb-1.5">Début</p>
-                <p className="text-sm font-black text-blue-900">{startDate ? new Date(startDate).toLocaleDateString('fr-BE') : 'Choisir...'}</p>
+          <div className="flex items-center gap-3 p-3 bg-blue-50/30 border border-blue-100/50 rounded-lg">
+             <CalendarIcon size={16} className="text-blue-500 shrink-0" />
+             <div className="flex-1 flex items-center gap-2 text-sm">
+                <span className="font-medium text-blue-900">{startDate ? new Date(startDate).toLocaleDateString('fr-BE') : 'Sélectionnez une date'}</span>
+                {isAbsence && endDate && (
+                  <>
+                    <ArrowRight size={14} className="text-blue-400" />
+                    <span className="font-medium text-blue-900">{new Date(endDate).toLocaleDateString('fr-BE')}</span>
+                  </>
+                )}
              </div>
-             {isAbsence && (
-               <>
-                 <ArrowRight size={16} className="text-blue-300" />
-                 <div className="flex-1">
-                    <p className="text-[9px] font-black text-blue-400 uppercase leading-none mb-1.5">Fin (inclus)</p>
-                    <p className="text-sm font-black text-blue-900">{endDate ? new Date(endDate).toLocaleDateString('fr-BE') : 'Cliquer une fin...'}</p>
-                 </div>
-               </>
-             )}
           </div>
         </div>
 
-        {/* 3. DETAILS CHANTIER & HEURES */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-4 border-t border-gray-50">
-          <div className="md:col-span-6">
-            <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">
-              4. Chantier {isAbsence ? '(Optionnel)' : '(Requis)'}
-            </label>
+        {/* DETAILS CHANTIER & HEURES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div className="space-y-3">
+            <label className="text-xs font-semibold text-gray-700">Chantier</label>
             <select
               id="chantierId"
               name="chantierId"
               required={!isAbsence}
               value={selectedChantierId}
               onChange={(e) => setSelectedChantierId(e.target.value)}
-              className="w-full h-12 px-4 bg-gray-50 border-2 border-gray-50 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:bg-white focus:border-blue-500 transition-all"
+              className="w-full h-11 px-4 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             >
-              <option value="">{isAbsence ? 'Indépendant d\'un chantier' : 'Sélectionner un chantier...'}</option>
+              <option value="">{isAbsence ? 'Hors chantier (optionnel)' : 'Sélectionner un chantier...'}</option>
               {chantiers.map(c => <option key={c.id} value={c.id}>{c.titre}</option>)}
             </select>
           </div>
 
-          <div className="md:col-span-6 grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">Début</label>
-              <input type="time" name="debut" defaultValue="08:00" required className="w-full h-12 px-3 bg-gray-50 border-2 border-gray-50 rounded-xl text-sm font-bold text-black focus:outline-none focus:border-blue-500" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-gray-700">Heure début</label>
+              <input type="time" name="debut" defaultValue="08:00" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
             </div>
-            <div>
-              <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">Fin</label>
-              <input type="time" name="fin" defaultValue="16:30" required className="w-full h-12 px-3 bg-gray-50 border-2 border-gray-50 rounded-xl text-sm font-bold text-black focus:outline-none focus:border-blue-500" />
+            <div className="space-y-3">
+              <label className="text-xs font-semibold text-gray-700">Heure fin</label>
+              <input type="time" name="fin" defaultValue="16:30" required className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
             </div>
           </div>
         </div>
 
         {/* Commentaire */}
-        <div className="pt-2">
-          <label className="block text-[11px] font-black text-gray-400 uppercase mb-3 tracking-widest">Observations</label>
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-gray-700">Observations</label>
           <textarea
             id="commentaire"
             name="commentaire"
             rows={2}
-            className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl text-sm font-medium text-black focus:outline-none focus:bg-white focus:border-blue-500 transition-all resize-none"
-            placeholder="Ex: Cassé jambe, rendez-vous médical, travaux particuliers..."
+            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+            placeholder="Détails complémentaires..."
           />
         </div>
 
         {/* MESSAGES & ACTION */}
-        <div className="space-y-4 pt-4">
-          {error && <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-xs font-bold text-red-600 flex items-center gap-3 animate-shake">⚠️ {error}</div>}
-          {success && <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-xs font-bold text-emerald-600 flex items-center gap-3">✅ Enregistrement effectué avec succès !</div>}
+        <div className="space-y-4 pt-2">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-xs font-medium text-red-700 flex items-center gap-2">
+              <Info size={14} /> {error}
+            </div>
+          )}
+          {success && (
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-xs font-medium text-emerald-700 flex items-center gap-2">
+              <Info size={14} /> Enregistrement effectué avec succès !
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={isPending}
-            className={`w-full py-5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3
-              ${isPending ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white hover:bg-black'}`}
+            className={`w-full py-3.5 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2
+              ${isPending 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99] shadow-sm'}`}
           >
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : 'Valider le pointage'}
+            {isPending ? <Loader2 size={18} className="animate-spin" /> : 'Valider le pointage'}
           </button>
         </div>
       </form>
