@@ -288,18 +288,6 @@ export default async function Dashboard({
                   </div>
                 </Link>
               )}
-
-              <div className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                  <TrendingUp size={15} className="text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Taux d&apos;avancement</p>
-                  <p className="text-xs text-gray-500">
-                    {total > 0 ? Math.round((termine / total) * 100) : 0}% terminés
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Derniers pointages par ouvrier — Chef seulement */}

@@ -222,7 +222,7 @@ export default function ChantierCalendar({ chantiers, isChef }: Props) {
                           {showWeather && (
                             <span className="shrink-0 text-[8px] md:text-[10px]">{getWeatherIcon(dayForecast.code)}</span>
                           )}
-                          <span className="truncate leading-none hidden sm:inline">{c.titre}</span>
+                          <span className="truncate leading-none">{c.titre}</span>
                         </Link>
                       )
                     })}

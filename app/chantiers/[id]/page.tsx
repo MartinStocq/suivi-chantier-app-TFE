@@ -2,7 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { autoUpdateChantierStatuts } from '@/lib/chantiers'
-import { autoUpdateMeteo, getForecast, checkWeatherFavorability } from '@/lib/meteo'
+import { autoUpdateMeteo, getForecast, checkWeatherFavorability, getCoordinates } from '@/lib/meteo'
 import { getSignedPhotoUrl } from '@/lib/storage'
 import Link from 'next/link'
 import StatutBadge from '@/components/ui/StatutBadge'
@@ -89,36 +89,49 @@ export default async function ChantierDetailPage({
   const currentMeteo = meteoData?.current
 
   // Prévisions dynamiques
-  
   let forecastDays: any[] = []
   let scheduledMeteo = null
 
-  if (chantier.adresse.latitude && chantier.adresse.longitude) {
-    const fullForecast = await getForecast(chantier.adresse.latitude, chantier.adresse.longitude)
-    if (fullForecast) {
-      const dStart = new Date(chantier.dateDebutPrevue)
-      const dateStartStr = `${dStart.getFullYear()}-${String(dStart.getMonth() + 1).padStart(2, '0')}-${String(dStart.getDate()).padStart(2, '0')}`
-      const startIdx = fullForecast.findIndex((f: any) => f.date === dateStartStr)
-      if (startIdx !== -1) {
-        scheduledMeteo = {
-          code: fullForecast[startIdx].weatherCode,
-          max: fullForecast[startIdx].tempMax,
-          min: fullForecast[startIdx].tempMin,
+  let lat = chantier.adresse.latitude
+  let lon = chantier.adresse.longitude
+
+  // 1. Récupération robuste des coordonnées si manquantes
+  if (lat === null || lat === undefined || lon === null || lon === undefined) {
+    const coords = await getCoordinates(chantier.adresse.ville).catch(() => null)
+    if (coords) {
+      lat = coords.latitude
+      lon = coords.longitude
+      // Mise à jour asynchrone
+      prisma.adresse.update({
+        where: { id: chantier.adresse.id },
+        data: { latitude: lat, longitude: lon }
+      }).catch(() => {})
+    }
+  }
+
+  // 2. Récupération des prévisions
+  if (lat !== null && lon !== null) {
+    try {
+      const fullForecast = await getForecast(lat, lon)
+      if (fullForecast && fullForecast.length > 0) {
+        // Météo pour le jour de début prévu
+        const dStart = new Date(chantier.dateDebutPrevue)
+        const dateStartStr = `${dStart.getFullYear()}-${String(dStart.getMonth() + 1).padStart(2, '0')}-${String(dStart.getDate()).padStart(2, '0')}`
+        const startIdx = fullForecast.findIndex((f: any) => f.date === dateStartStr)
+        
+        if (startIdx !== -1) {
+          scheduledMeteo = {
+            code: fullForecast[startIdx].weatherCode,
+            max: fullForecast[startIdx].tempMax,
+            min: fullForecast[startIdx].tempMin,
+          }
         }
-      }
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
-      let daysToShow = 3 
-      if (chantier.dateFinPrevue) {
-        const dEnd = new Date(chantier.dateFinPrevue)
-        const diffTime = dEnd.getTime() - today.getTime()
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        daysToShow = Math.max(1, Math.min(5, diffDays + 1))
+        // On affiche toujours 5 jours de prévisions
+        forecastDays = fullForecast.slice(0, 5)
       }
-
-      forecastDays = fullForecast.slice(0, daysToShow)
+    } catch (e) {
+      console.error("Erreur lors de la récupération du forecast:", e)
     }
   }
 
@@ -324,6 +337,38 @@ export default async function ChantierDetailPage({
                    <p className="text-sm font-black text-gray-700">{currentMeteo?.precipitation || '0'} <span className="text-[10px] font-medium uppercase italic">mm</span></p>
                 </div>
              </div>
+
+             {/* Prévisions à venir */}
+             {forecastDays.length > 0 && (
+               <div className="mt-8 pt-6 border-t border-gray-100">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Prochains jours</h4>
+                  <div className="space-y-3">
+                    {forecastDays.map((f: any, idx: number) => {
+                      const isFavor = checkWeatherFavorability(f.tempMax, f.precipitationSum, f.windSpeedMax, f.weatherCode)
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{getWeatherIcon(f.weatherCode)}</span>
+                            <div>
+                              <p className="text-xs font-bold text-gray-900">
+                                {new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric' })}
+                              </p>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${isFavor.isFavorable ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                <p className="text-[9px] font-bold uppercase text-gray-400">{isFavor.isFavorable ? 'Favorable' : 'Difficile'}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-xs font-black text-gray-900">{Math.round(f.tempMax)}°</p>
+                             <p className="text-[9px] font-medium text-gray-400">{Math.round(f.tempMin)}°</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+               </div>
+             )}
           </div>
 
           {/* 7. Statistiques rapides (Total Heures) (Mobile: 7th | Desktop: Bottom Right) */}
