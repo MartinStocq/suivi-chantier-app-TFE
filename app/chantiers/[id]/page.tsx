@@ -182,218 +182,226 @@ export default async function ChantierDetailPage({
         {/* Layout Principal */}
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
           
-          {/* 1. Bannière Principale (Nom & Statut) */}
-          <div className="order-1 lg:order-1 lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 md:p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none hidden sm:block">
-              <HardHat size={200} />
-            </div>
-
-            <div className="relative z-10">
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                {isChef
-                  ? <StatutInline chantierId={chantier.id} statut={chantier.statut} dateDebutPrevue={chantier.dateDebutPrevue.toISOString()} />
-                  : <StatutBadge statut={chantier.statut} />
-                }
-                <span className="text-xs text-gray-300">|</span>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
-                   <Calendar size={14} />
-                   <span>{new Date(chantier.dateDebutPrevue).toLocaleDateString('fr-BE')}</span>
-                   {chantier.dateFinPrevue && <span>→ {new Date(chantier.dateFinPrevue).toLocaleDateString('fr-BE')}</span>}
-                </div>
-              </div>
-              
-              <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-4">{chantier.titre}</h2>
-              <div className="flex items-center gap-1.5 text-sm text-gray-400">
-                <MapPin size={14} />
-                <span>{chantier.adresse.rue} {chantier.adresse.numero}, {chantier.adresse.ville}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2. Info Client (Mobile: 2nd | Desktop: Right Col) */}
-          <div className="order-2 lg:order-4 bg-white border border-gray-200 rounded-2xl p-6">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-               <User size={14} className="text-blue-500" /> Client
-            </h3>
-            <div className="space-y-5">
-              <div>
-                <p className="text-base font-black text-gray-900">{chantier.client.nom}</p>
-                <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">Donneur d&apos;ordre</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                {chantier.client.telephone && (
-                  <a href={`tel:${chantier.client.telephone}`} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
-                    <Phone size={14} className="text-gray-400" /> {chantier.client.telephone}
-                  </a>
-                )}
-                {chantier.client.email && (
-                  <a href={`mailto:${chantier.client.email}`} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
-                    <Mail size={14} className="text-gray-400" /> {chantier.client.email}
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* 3. Localisation (Mobile: 3rd | Desktop: Right Col) */}
-          <div className="order-3 lg:order-6 bg-white border border-gray-200 rounded-2xl p-6">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-               <MapPin size={14} className="text-emerald-500" /> Chantier
-            </h3>
-            <div className="space-y-1">
-              <p className="text-sm font-black text-gray-900">{chantier.adresse.numero} {chantier.adresse.rue}</p>
-              <p className="text-sm font-black text-gray-900">{chantier.adresse.codePostal} {chantier.adresse.ville}</p>
-              <p className="text-xs font-medium text-gray-400">{chantier.adresse.pays}</p>
-            </div>
+          {/* Colonne Principale (Gauche sur Desktop) */}
+          <div className="contents lg:block lg:col-span-2 lg:space-y-6">
             
-            {chantier.adresse.latitude && chantier.adresse.longitude && (
-               <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${chantier.adresse.latitude},${chantier.adresse.longitude}`}
-                target="_blank"
-                className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-emerald-50 rounded-xl text-[10px] font-black text-emerald-700 uppercase tracking-widest hover:bg-emerald-100 transition-colors"
-               >
-                  Google Maps <ArrowLeft size={12} className="rotate-180" />
-               </a>
-            )}
-          </div>
-
-          {/* 4. Équipe (Mobile: 4th | Desktop: Left Col) */}
-          <div className="order-4 lg:order-3 lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-gray-400" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">
-                  Équipe ({chantier.affectations.length})
-                </h3>
+            {/* 1. Bannière Principale (Nom & Statut) */}
+            <div className="order-1 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 md:p-8 relative overflow-hidden lg:mb-6">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none hidden sm:block">
+                <HardHat size={200} />
               </div>
-              {isChef && (
-                <Link href={`/chantiers/${id}/equipe`} className="text-xs font-bold text-blue-600 hover:underline uppercase tracking-wider">
-                  Gérer
-                </Link>
-              )}
-            </div>
-            <ChantierEquipe affectations={affectationsWithHours as never} isChef={isChef} />
-          </div>
 
-          {/* 5. Photos (Mobile: 5th | Desktop: Left Col) */}
-          <div className="order-5 lg:order-5 lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Image size={16} className="text-gray-400" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">
-                  Photos ({chantier._count.photos})
-                </h3>
-              </div>
-              {!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE') && (
-                <PhotoUpload chantierId={chantier.id} takenById={user.id} />
-              )}
-            </div>
-            <ChantierPhotosGrid
-              photos={photosWithSignedUrls as any}
-              totalPhotos={chantier._count.photos}
-              chantierId={id}
-              canDelete={!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE')}
-            />
-          </div>
-
-          {/* 6. Bloc Météo (Mobile: 6th | Desktop: Right Col) */}
-          <div className="order-6 lg:order-2 bg-white border border-gray-200 rounded-2xl p-6 flex flex-col justify-between">
-             <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Météo</h3>
-                  <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase tracking-widest">
-                    {currentMeteo ? 'Temps Réel' : 'Prévue'}
+              <div className="relative z-10">
+                <div className="flex flex-wrap items-center gap-3 mb-6">
+                  {isChef
+                    ? <StatutInline chantierId={chantier.id} statut={chantier.statut} dateDebutPrevue={chantier.dateDebutPrevue.toISOString()} />
+                    : <StatutBadge statut={chantier.statut} />
+                  }
+                  <span className="text-xs text-gray-300">|</span>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium">
+                     <Calendar size={14} />
+                     <span>{new Date(chantier.dateDebutPrevue).toLocaleDateString('fr-BE')}</span>
+                     {chantier.dateFinPrevue && <span>→ {new Date(chantier.dateFinPrevue).toLocaleDateString('fr-BE')}</span>}
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-6">
-                  <div className="text-5xl">
-                    {getWeatherIcon(currentMeteo ? currentMeteo.weather_code : (scheduledMeteo?.code ?? 0))}
-                  </div>
-                  <div>
-                    <p className="text-3xl font-black text-gray-900 tabular-nums">
-                      {Math.round(currentMeteo ? currentMeteo.temperature_2m : (scheduledMeteo?.max ?? 0))}°C
-                    </p>
-                    <p className="text-[11px] text-gray-500 uppercase font-bold tracking-tight">
-                      {currentMeteo ? 'Actuellement' : 'Maximum prévu'}
-                    </p>
-                  </div>
+                <h2 className="text-2xl md:text-3xl font-black text-gray-900 mb-4">{chantier.titre}</h2>
+                <div className="flex items-center gap-1.5 text-sm text-gray-400">
+                  <MapPin size={14} />
+                  <span>{chantier.adresse.rue} {chantier.adresse.numero}, {chantier.adresse.ville}</span>
                 </div>
-             </div>
+              </div>
+            </div>
 
-             <div className="mt-8 grid grid-cols-2 gap-4">
-                <div className="p-3 bg-gray-50 rounded-xl">
-                   <div className="flex items-center gap-2 text-gray-400 mb-1">
-                      <Wind size={12} />
-                      <span className="text-[10px] font-bold uppercase">Vent</span>
-                   </div>
-                   <p className="text-sm font-black text-gray-700">{currentMeteo?.wind_speed_10m || '--'} <span className="text-[10px] font-medium uppercase italic">km/h</span></p>
+            {/* 4. Équipe (Mobile: 4th) */}
+            <div className="order-4 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">
+                    Équipe ({chantier.affectations.length})
+                  </h3>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-xl">
-                   <div className="flex items-center gap-2 text-gray-400 mb-1">
-                      <Droplets size={12} />
-                      <span className="text-[10px] font-bold uppercase">Pluie</span>
-                   </div>
-                   <p className="text-sm font-black text-gray-700">{currentMeteo?.precipitation || '0'} <span className="text-[10px] font-medium uppercase italic">mm</span></p>
-                </div>
-             </div>
+                {isChef && (
+                  <Link href={`/chantiers/${id}/equipe`} className="text-xs font-bold text-blue-600 hover:underline uppercase tracking-wider">
+                    Gérer
+                  </Link>
+                )}
+              </div>
+              <ChantierEquipe affectations={affectationsWithHours as never} isChef={isChef} />
+            </div>
 
-             {/* Prévisions à venir */}
-             {forecastDays.length > 0 && (
-               <div className="mt-8 pt-6 border-t border-gray-100">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Prochains jours</h4>
-                  <div className="space-y-3">
-                    {forecastDays.map((f: any, idx: number) => {
-                      const isFavor = checkWeatherFavorability(f.tempMax, f.precipitationSum, f.windSpeedMax, f.weatherCode)
-                      return (
-                        <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">{getWeatherIcon(f.weatherCode)}</span>
-                            <div>
-                              <p className="text-xs font-bold text-gray-900">
-                                {new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric' })}
-                              </p>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isFavor.isFavorable ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                <p className="text-[9px] font-bold uppercase text-gray-400">{isFavor.isFavorable ? 'Favorable' : 'Difficile'}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-xs font-black text-gray-900">{Math.round(f.tempMax)}°</p>
-                             <p className="text-[9px] font-medium text-gray-400">{Math.round(f.tempMin)}°</p>
-                          </div>
-                        </div>
-                      )
-                    })}
+            {/* 5. Photos (Mobile: 5th) */}
+            <div className="order-5 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Image size={16} className="text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">
+                    Photos ({chantier._count.photos})
+                  </h3>
+                </div>
+                {!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE') && (
+                  <PhotoUpload chantierId={chantier.id} takenById={user.id} />
+                )}
+              </div>
+              <ChantierPhotosGrid
+                photos={photosWithSignedUrls as any}
+                totalPhotos={chantier._count.photos}
+                chantierId={id}
+                canDelete={!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE')}
+              />
+            </div>
+
+            {/* 8. Description (Mobile: 8th) */}
+            {chantier.description && (
+              <div className="order-8 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <ClipboardList size={16} className="text-gray-400" />
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Description</h3>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                  {chantier.description}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Colonne Latérale (Droite sur Desktop) */}
+          <div className="contents lg:block lg:space-y-6">
+            
+            {/* 2. Info Client (Mobile: 2nd) */}
+            <div className="order-2 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                 <User size={14} className="text-blue-500" /> Client
+              </h3>
+              <div className="space-y-5">
+                <div>
+                  <p className="text-base font-black text-gray-900">{chantier.client.nom}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">Donneur d&apos;ordre</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {chantier.client.telephone && (
+                    <a href={`tel:${chantier.client.telephone}`} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+                      <Phone size={14} className="text-gray-400" /> {chantier.client.telephone}
+                    </a>
+                  )}
+                  {chantier.client.email && (
+                    <a href={`mailto:${chantier.client.email}`} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+                      <Mail size={14} className="text-gray-400" /> {chantier.client.email}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Localisation (Mobile: 3rd) */}
+            <div className="order-3 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                 <MapPin size={14} className="text-emerald-500" /> Chantier
+              </h3>
+              <div className="space-y-1">
+                <p className="text-sm font-black text-gray-900">{chantier.adresse.numero} {chantier.adresse.rue}</p>
+                <p className="text-sm font-black text-gray-900">{chantier.adresse.codePostal} {chantier.adresse.ville}</p>
+                <p className="text-xs font-medium text-gray-400">{chantier.adresse.pays}</p>
+              </div>
+              
+              {chantier.adresse.latitude && chantier.adresse.longitude && (
+                 <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${chantier.adresse.latitude},${chantier.adresse.longitude}`}
+                  target="_blank"
+                  className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-emerald-50 rounded-xl text-[10px] font-black text-emerald-700 uppercase tracking-widest hover:bg-emerald-100 transition-colors"
+                 >
+                    Google Maps <ArrowLeft size={12} className="rotate-180" />
+                 </a>
+              )}
+            </div>
+
+            {/* 6. Bloc Météo (Mobile: 6th) */}
+            <div className="order-6 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+               <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Météo</h3>
+                    <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase tracking-widest">
+                      {currentMeteo ? 'Temps Réel' : 'Prévue'}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-6">
+                    <div className="text-5xl">
+                      {getWeatherIcon(currentMeteo ? currentMeteo.weather_code : (scheduledMeteo?.code ?? 0))}
+                    </div>
+                    <div>
+                      <p className="text-3xl font-black text-gray-900 tabular-nums">
+                        {Math.round(currentMeteo ? currentMeteo.temperature_2m : (scheduledMeteo?.max ?? 0))}°C
+                      </p>
+                      <p className="text-[11px] text-gray-500 uppercase font-bold tracking-tight">
+                        {currentMeteo ? 'Actuellement' : 'Maximum prévu'}
+                      </p>
+                    </div>
                   </div>
                </div>
-             )}
-          </div>
 
-          {/* 7. Statistiques rapides (Total Heures) (Mobile: 7th | Desktop: Bottom Right) */}
-          <div className="order-7 lg:order-8 bg-gray-900 rounded-2xl p-6 text-white">
-            <div className="flex items-center gap-2 mb-6">
-              <Clock size={16} className="text-emerald-400" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest">Total Heures</h3>
+               <div className="mt-8 grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-xl">
+                     <div className="flex items-center gap-2 text-gray-400 mb-1">
+                        <Wind size={12} />
+                        <span className="text-[10px] font-bold uppercase">Vent</span>
+                     </div>
+                     <p className="text-sm font-black text-gray-700">{currentMeteo?.wind_speed_10m || '--'} <span className="text-[10px] font-medium uppercase italic">km/h</span></p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-xl">
+                     <div className="flex items-center gap-2 text-gray-400 mb-1">
+                        <Droplets size={12} />
+                        <span className="text-[10px] font-bold uppercase">Pluie</span>
+                     </div>
+                     <p className="text-sm font-black text-gray-700">{currentMeteo?.precipitation || '0'} <span className="text-[10px] font-medium uppercase italic">mm</span></p>
+                  </div>
+               </div>
+
+               {/* Prévisions à venir */}
+               {forecastDays.length > 0 && (
+                 <div className="mt-8 pt-6 border-t border-gray-100">
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Prochains jours</h4>
+                    <div className="space-y-3">
+                      {forecastDays.map((f: any, idx: number) => {
+                        const isFavor = checkWeatherFavorability(f.tempMax, f.precipitationSum, f.windSpeedMax, f.weatherCode)
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{getWeatherIcon(f.weatherCode)}</span>
+                              <div>
+                                <p className="text-xs font-bold text-gray-900">
+                                  {new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric' })}
+                                </p>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${isFavor.isFavorable ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                  <p className="text-[9px] font-bold uppercase text-gray-400">{isFavor.isFavorable ? 'Favorable' : 'Difficile'}</p>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-xs font-black text-gray-900">{Math.round(f.tempMax)}°</p>
+                               <p className="text-[9px] font-medium text-gray-400">{Math.round(f.tempMin)}°</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                 </div>
+               )}
             </div>
-            <p className="text-4xl font-black tabular-nums">{totalHeures.toFixed(1).replace('.', ',')}h</p>
-            <p className="text-[10px] text-gray-400 mt-2 font-medium">Consommées sur ce projet</p>
-          </div>
 
-          {/* 8. Description (Mobile: 8th | Desktop: Left Col Bottom) */}
-          {chantier.description && (
-            <div className="order-8 lg:order-7 lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <ClipboardList size={16} className="text-gray-400" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Description</h3>
+            {/* 7. Statistiques rapides (Total Heures) (Mobile: 7th) */}
+            <div className="order-7 lg:order-none bg-gray-900 rounded-2xl p-6 text-white lg:mb-6">
+              <div className="flex items-center gap-2 mb-6">
+                <Clock size={16} className="text-emerald-400" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest">Total Heures</h3>
               </div>
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                {chantier.description}
-              </p>
+              <p className="text-4xl font-black tabular-nums">{totalHeures.toFixed(1).replace('.', ',')}h</p>
+              <p className="text-[10px] text-gray-400 mt-2 font-medium">Consommées sur ce projet</p>
             </div>
-          )}
 
+          </div>
         </div>
 
       </main>
