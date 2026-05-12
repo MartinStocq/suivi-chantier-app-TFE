@@ -144,37 +144,48 @@ export default async function UtilisateurPointagesPage({
                   </div>
 
                   <div className="space-y-3">
-                    {m.pointages.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{p.chantier?.titre || 'Absence générale'}</p>
-                          <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1 font-medium">
-                            <span className="bg-white px-1.5 py-0.5 rounded border border-gray-100 text-gray-500">
-                              {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit' })}
-                            </span>
-                            <span>•</span>
-                            <span>
-                              {new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
-                              {' - '}
-                              {new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                    {m.pointages.map((p) => {
+                      const typeLabels: Record<string, string> = {
+                        TRAVAIL: 'Travail',
+                        MALADIE: 'Maladie',
+                        CONGE_PAYE: 'Congé Payé',
+                        CONGE_SANS_SOLDE: 'Congé sans solde',
+                        INTEMPERIE: 'Intempérie'
+                      }
+                      const displayTitle = p.chantier?.titre || `Absence : ${typeLabels[p.type] || 'Générale'}`
+
+                      return (
+                        <div key={p.id} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                          <div>
+                            <p className="text-sm font-bold text-gray-900">{displayTitle}</p>
+                            <div className="flex items-center gap-2 text-[11px] text-gray-400 mt-1 font-medium">
+                              <span className="bg-white px-1.5 py-0.5 rounded border border-gray-100 text-gray-500">
+                                {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit' })}
+                              </span>
+                              <span>•</span>
+                              <span>
+                                {new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                                {' - '}
+                                {new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-1">
-                          <div className="flex items-center gap-3">
-                            <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
-                            {user.role === 'CHEF_CHANTIER' && (
-                              <DeletePointageButton pointageId={p.id} />
+                          <div className="text-right flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-3">
+                              <p className="text-sm font-black text-gray-900">{p.duree.toFixed(2).replace('.', ',')}h</p>
+                              {user.role === 'CHEF_CHANTIER' && (
+                                <DeletePointageButton pointageId={p.id} />
+                              )}
+                            </div>
+                            {p.commentaire && (
+                              <p className="text-[10px] text-gray-400 mt-1 italic truncate max-w-[200px]" title={p.commentaire}>
+                                &quot;{p.commentaire}&quot;
+                              </p>
                             )}
                           </div>
-                          {p.commentaire && (
-                            <p className="text-[10px] text-gray-400 mt-1 italic truncate max-w-[200px]" title={p.commentaire}>
-                              &quot;{p.commentaire}&quot;
-                            </p>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               ))

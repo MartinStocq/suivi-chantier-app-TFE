@@ -143,13 +143,22 @@ async function generateUserPDF(ouvrier: any, month: number, year: number, fileNa
   doc.text('DÉTAIL DES PRESTATIONS', 14, currentY)
   doc.line(14, currentY + 2, 45, currentY + 2)
 
-  const rows = ouvrier.pointages.map((p: any) => [
-    new Date(p.date).toLocaleDateString('fr-BE'),
-    p.chantier?.titre || 'ABSENCE GÉNÉRALE',
-    p.type.replace('_', ' '),
-    `${p.duree.toFixed(2).replace('.', ',')} h`,
-    p.commentaire || '-'
-  ])
+  const rows = ouvrier.pointages.map((p: any) => {
+    const typeLabels: Record<string, string> = {
+      TRAVAIL: 'Travail',
+      MALADIE: 'Maladie',
+      CONGE_PAYE: 'Congé Payé',
+      CONGE_SANS_SOLDE: 'Congé sans solde',
+      INTEMPERIE: 'Intempérie'
+    }
+    return [
+      new Date(p.date).toLocaleDateString('fr-BE'),
+      p.chantier?.titre || `Absence : ${typeLabels[p.type] || 'Générale'}`,
+      p.type.replace('_', ' '),
+      `${p.duree.toFixed(2).replace('.', ',')} h`,
+      p.commentaire || '-'
+    ]
+  })
 
   autoTable(doc, {
     startY: currentY + 7,

@@ -228,22 +228,33 @@ export default async function Dashboard({
                     <p className="text-xs text-gray-400 text-center py-4 italic">Aucun pointage récent</p>
                   ) : (
                     <div className="space-y-3">
-                      {recentPointages.map((p: any) => (
-                        <div key={p.id} className="flex items-start justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
-                          <div>
-                            <p className="text-xs font-semibold text-gray-900">{p.chantier?.titre || 'Absence générale'}</p>
-                            <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5 font-medium">
-                              <CalendarDays size={10} />
-                              {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}
-                              <span>•</span>
-                              {new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })} - {new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                      {recentPointages.map((p: any) => {
+                        const typeLabels: Record<string, string> = {
+                          TRAVAIL: 'Travail',
+                          MALADIE: 'Maladie',
+                          CONGE_PAYE: 'Congé Payé',
+                          CONGE_SANS_SOLDE: 'Congé sans solde',
+                          INTEMPERIE: 'Intempérie'
+                        }
+                        return (
+                          <div key={p.id} className="flex items-start justify-between gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                            <div>
+                              <p className="text-xs font-semibold text-gray-900">
+                                {p.chantier?.titre || `Absence : ${typeLabels[p.type] || 'Générale'}`}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-0.5 font-medium">
+                                <CalendarDays size={10} />
+                                {new Date(p.date).toLocaleDateString('fr-BE', { day: '2-digit', month: 'short' })}
+                                <span>•</span>
+                                {new Date(p.debut).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })} - {new Date(p.fin).toLocaleTimeString('fr-BE', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
                             </div>
+                            <span className="text-xs font-black text-gray-700 tabular-nums bg-gray-50 px-2 py-1 rounded">
+                              {p.duree.toFixed(2).replace('.', ',')}h
+                            </span>
                           </div>
-                          <span className="text-xs font-black text-gray-700 tabular-nums bg-gray-50 px-2 py-1 rounded">
-                            {p.duree.toFixed(2).replace('.', ',')}h
-                          </span>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -309,7 +320,7 @@ export default async function Dashboard({
                           <div>
                             <p className="text-sm font-semibold text-gray-900">{w.nom}</p>
                             <p className="text-[10px] text-gray-500 font-medium">
-                              {lp.chantier?.titre || 'Absence générale'}
+                              {lp.chantier?.titre || `Absence : ${lp.type === 'MALADIE' ? 'Maladie' : lp.type === 'CONGE_PAYE' ? 'Congé' : lp.type === 'INTEMPERIE' ? 'Intempérie' : 'Générale'}`}
                             </p>
                           </div>
                         </div>
