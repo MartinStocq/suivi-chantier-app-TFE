@@ -131,7 +131,7 @@ export default async function ChantierDetailPage({
         forecastDays = fullForecast.slice(0, 5)
       }
     } catch (e) {
-      console.error("Erreur lors de la récupération du forecast:", e)
+      console.error("Erreur lors de la récupération du forecast.:", e)
     }
   }
 
