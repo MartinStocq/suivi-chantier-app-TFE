@@ -10,6 +10,8 @@ import ChantierCalendar from '@/components/chantiers/ChantierCalendar'
 import { getForecast } from '@/lib/meteo'
 import { Calendar } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ChantiersPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')

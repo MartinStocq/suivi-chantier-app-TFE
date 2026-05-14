@@ -20,6 +20,11 @@ export async function addPointageAction(data: AddPointageInput) {
   const me = await getCurrentUser()
   if (!me) throw new Error('Non authentifié')
 
+  // Sécurité : Un ouvrier ne peut pas encoder autre chose que du TRAVAIL
+  if (me.role === 'OUVRIER' && data.type && data.type !== 'TRAVAIL') {
+    throw new Error("Seul un chef de chantier peut encoder des absences (Maladie, Congés, etc.)")
+  }
+
   const targetUserId = (me.role === 'CHEF_CHANTIER' && data.utilisateurId) 
     ? data.utilisateurId 
     : me.id

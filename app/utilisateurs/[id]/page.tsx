@@ -18,7 +18,6 @@ export default async function UtilisateurFichePage({
 
   const { id } = await params
 
-
   const membre = await prisma.utilisateur.findUnique({
     where: { id },
     include: {
@@ -34,6 +33,8 @@ export default async function UtilisateurFichePage({
   })
 
   if (!membre) notFound()
+
+  const canSeePointages = user.role === 'CHEF_CHANTIER' || user.id === membre.id
 
   return (
     <AppLayout>
@@ -97,15 +98,17 @@ export default async function UtilisateurFichePage({
             </div>
           </div>
 
-          <div className="mt-6">
-            <Link
-              href={`/utilisateurs/${membre.id}/pointages`}
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all group"
-            >
-              <Clock size={14} className="group-hover:animate-pulse" />
-              Voir l&apos;historique des prestations
-            </Link>
-          </div>
+          {canSeePointages && (
+            <div className="mt-6">
+              <Link
+                href={`/utilisateurs/${membre.id}/pointages`}
+                className="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all group"
+              >
+                <Clock size={14} className="group-hover:animate-pulse" />
+                Voir l&apos;historique des prestations
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Chantiers affectés */}

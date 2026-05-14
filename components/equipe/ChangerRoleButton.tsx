@@ -15,6 +15,9 @@ export default function ChangerRoleButton({
 
   const nouveauRole = roleActuel === 'CHEF_CHANTIER' ? 'OUVRIER' : 'CHEF_CHANTIER'
 
+  // Si on est déjà ouvrier, on ne peut pas être promu via ce bouton (sécurité UI additionnelle)
+  if (roleActuel === 'OUVRIER') return null
+
   const handleClick = async () => {
     setLoading(true)
     await fetch(`/api/users/${userId}`, {
