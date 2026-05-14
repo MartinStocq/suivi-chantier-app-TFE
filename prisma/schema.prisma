@@ -9,13 +9,13 @@ datasource db {
 
 model Utilisateur {
   id              String                @id @default(uuid())
-  nom             String
-  email           String                @unique
+  nom             String                @db.VarChar(255)
+  email           String                @unique @db.VarChar(255)
   role            Role                  @default(OUVRIER)
   createdAt       DateTime              @default(now()) @map("created_at")
   approuve        Boolean               @default(false)
-  avatarPath      String?               @map("avatar_path")
-  telephone       String?
+  avatarPath      String?               @map("avatar_path") @db.VarChar(512)
+  telephone       String?               @db.VarChar(50)
   actionsJournal  ActionJournal[]
   affectations    AffectationChantier[]
   chantiersCreés Chantier[]            @relation("ChantierCreePar")
@@ -29,11 +29,11 @@ model Utilisateur {
 
 model Adresse {
   id         String     @id @default(uuid())
-  rue        String
-  numero     String
-  codePostal String     @map("code_postal")
-  ville      String
-  pays       String
+  rue        String     @db.VarChar(255)
+  numero     String     @db.VarChar(50)
+  codePostal String     @map("code_postal") @db.VarChar(20)
+  ville      String     @db.VarChar(100)
+  pays       String     @db.VarChar(100)
   latitude   Float?
   longitude  Float?
   chantiers  Chantier[]
@@ -43,9 +43,9 @@ model Adresse {
 
 model Client {
   id        String     @id @default(uuid())
-  nom       String
-  telephone String?
-  email     String?
+  nom       String     @db.VarChar(255)
+  telephone String?    @db.VarChar(50)
+  email     String?    @db.VarChar(255)
   chantiers Chantier[]
 
   @@map("clients")
@@ -53,8 +53,8 @@ model Client {
 
 model Chantier {
   id              String                @id @default(uuid())
-  titre           String
-  description     String?
+  titre           String                @db.VarChar(255)
+  description     String?               @db.Text
   statut          StatutChantier        @default(EN_ATTENTE)
   dateDebutPrevue DateTime              @map("date_debut_prevue") @db.Date
   dateFinPrevue   DateTime?             @map("date_fin_prevue") @db.Date
@@ -92,8 +92,8 @@ model Photo {
   id          String      @id @default(uuid())
   takenAt     DateTime    @default(now()) @map("taken_at")
   type        TypePhoto
-  storagePath String      @map("storage_path")
-  commentaire String?
+  storagePath String      @map("storage_path") @db.VarChar(512)
+  commentaire String?     @db.Text
   chantierId  String      @map("id_chantier")
   takenById   String      @map("taken_by")
   chantier    Chantier    @relation(fields: [chantierId], references: [id])
@@ -106,7 +106,7 @@ model RapportExport {
   id           String       @id @default(uuid())
   exportedAt   DateTime     @default(now()) @map("exported_at")
   format       FormatExport
-  type         String
+  type         String       @db.VarChar(50)
   chantierId   String       @map("id_chantier")
   exportedById String       @map("exported_by")
   exportedBy   Utilisateur  @relation(fields: [exportedById], references: [id])
@@ -118,8 +118,8 @@ model RapportExport {
 model MeteoSnapshot {
   id           String   @id @default(uuid())
   dateSnapshot DateTime @default(now()) @map("date_snapshot")
-  source       String
-  payload      String
+  source       String   @db.VarChar(100)
+  payload      String   @db.Text
   chantierId   String   @map("id_chantier")
   chantier     Chantier @relation(fields: [chantierId], references: [id])
 
@@ -133,7 +133,7 @@ model Pointage {
   debut         DateTime
   fin           DateTime
   duree         Float
-  commentaire   String?
+  commentaire   String?     @db.Text
   createdAt     DateTime    @default(now()) @map("created_at")
   chantierId    String?     @map("id_chantier")
   utilisateurId String      @map("id_utilisateur")
@@ -154,7 +154,7 @@ enum TypePointage {
 model ActionJournal {
   id         String            @id @default(uuid())
   action     TypeActionJournal
-  details    String?
+  details    String?           @db.Text
   createdAt  DateTime          @default(now()) @map("created_at")
   chantierId String?           @map("id_chantier")
   auteurId   String            @map("id_auteur")
@@ -166,12 +166,12 @@ model ActionJournal {
 
 model Notification {
   id        String      @id @default(uuid())
-  titre     String
-  message   String
+  titre     String      @db.VarChar(255)
+  message   String      @db.Text
   lu        Boolean     @default(false)
   createdAt DateTime    @default(now()) @map("created_at")
   userId    String      @map("id_utilisateur")
-  lien      String?
+  lien      String?     @db.VarChar(512)
   user      Utilisateur @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")

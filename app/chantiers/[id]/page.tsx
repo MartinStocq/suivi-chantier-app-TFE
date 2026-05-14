@@ -15,6 +15,8 @@ import MeteoSyncButton from '@/components/chantiers/MeteoSyncButton'
 import ExportButton from '@/components/chantiers/ExportButton'
 import AppLayout from '@/components/layout/AppLayout'
 import TopBar from '@/components/layout/TopBar'
+import BeforeAfterSlider from '@/components/chantiers/BeforeAfterSlider'
+import WeatherPointageButton from '@/components/chantiers/WeatherPointageButton'
 
 import {
   ArrowLeft, Pencil, MapPin, User, Calendar,
@@ -61,6 +63,10 @@ export default async function ChantierDetailPage({
       signedUrl: await getSignedPhotoUrl(p.storagePath)
     }))
   )
+
+  // Chercher une photo AVANT et une photo APRES pour le slider
+  const photoAvant = photosWithSignedUrls.find(p => p.type === 'AVANT')
+  const photoApres = photosWithSignedUrls.find(p => p.type === 'APRES')
 
   // Calcul du total d'heures
   const statsHeures = await prisma.pointage.aggregate({
@@ -159,6 +165,11 @@ export default async function ChantierDetailPage({
 
       <main className="flex-1 px-4 md:px-8 py-6 md:py-8 space-y-6">
         
+        {/* Alerte Météo (Bouton Pointage Intempérie) */}
+        {chantier.statut === 'SUSPENDU' && (
+          <WeatherPointageButton chantierId={chantier.id} chantierTitre={chantier.titre} />
+        )}
+
         {/* Navigation & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Link href="/chantiers" className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit">
@@ -251,6 +262,14 @@ export default async function ChantierDetailPage({
                 canDelete={!(user.role === 'OUVRIER' && chantier.statut === 'TERMINE')}
               />
             </div>
+
+            {/* Slider Avant/Après (Nouveau) */}
+            {photoAvant && photoApres && (
+              <BeforeAfterSlider 
+                beforeUrl={photoAvant.signedUrl} 
+                afterUrl={photoApres.signedUrl} 
+              />
+            )}
 
             {/* 8. Description (Mobile: 8th) */}
             {chantier.description && (
