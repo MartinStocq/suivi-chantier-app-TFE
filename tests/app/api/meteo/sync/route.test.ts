@@ -1,9 +1,14 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { GET } from '@/app/api/meteo/sync/route'
 import { syncChantiersMeteo } from '@/lib/meteo'
+import { autoUpdateChantierStatuts } from '@/lib/chantiers'
 
 vi.mock('@/lib/meteo', () => ({
   syncChantiersMeteo: vi.fn().mockResolvedValue({ updated: 1, errors: 0 }),
+}))
+
+vi.mock('@/lib/chantiers', () => ({
+  autoUpdateChantierStatuts: vi.fn().mockResolvedValue(undefined),
 }))
 
 describe('API Meteo Sync', () => {

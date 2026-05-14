@@ -4,71 +4,39 @@ import { notifyProjectMembers } from './notifications'
 
 /**
  * Met à jour automatiquement les chantiers :
- * 1. Démarre ceux dont la date de début est arrivée (EN_ATTENTE -> EN_COURS)
- * 2. Termine ceux dont la date de fin est dépassée (EN_COURS -> TERMINE)
+ * 1. Clôture ceux dont la date de fin est dépassée (EN_COURS/SUSPENDU/EN_ATTENTE -> TERMINE)
+ * 2. Démarre ceux dont la date de début est arrivée (EN_ATTENTE -> EN_COURS)
+ * 3. Ré-ouvre ceux qui sont TERMINE mais dont la date a été prolongée (TERMINE -> EN_COURS)
  */
 export async function autoUpdateChantierStatuts() {
   const now = new Date()
-  
-  // Fin de journée pour le démarrage
-  const endOfToday = new Date(now)
-  endOfToday.setHours(23, 59, 59, 999)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const todayTime = today.getTime()
 
-  // Début de journée pour la clôture (un chantier se termine APRES sa date de fin)
-  const startOfToday = new Date(now)
-  startOfToday.setHours(0, 0, 0, 0)
-
-  // 1. Démarrage des chantiers
-  const chantiersToStart = await prisma.chantier.findMany({
-    where: {
-      statut: StatutChantier.EN_ATTENTE,
-      dateDebutPrevue: { lte: endOfToday },
-    },
-    select: { id: true, titre: true, createdById: true },
-  })
-
-  if (chantiersToStart.length > 0) {
-    await prisma.chantier.updateMany({
-      where: { id: { in: chantiersToStart.map(c => c.id) } },
-      data: { statut: StatutChantier.EN_COURS },
-    })
-
-    for (const c of chantiersToStart) {
-      await prisma.actionJournal.create({
-        data: {
-          action: 'CHANGEMENT_STATUT',
-          chantierId: c.id,
-          auteurId: c.createdById, 
-          details: `Démarrage automatique (Date de début atteinte)`,
-        }
-      }).catch(err => console.error(`[AutoStatut] Journal error for ${c.titre}:`, err))
-
-      await notifyProjectMembers(
-        c.id,
-        "Démarrage automatique",
-        `Le chantier "${c.titre}" a démarré automatiquement aujourd'hui.`
-      )
-    }
-
-    console.log(`[AutoStatut] ${chantiersToStart.length} chantier(s) passé(s) en EN_COURS : ${chantiersToStart.map(c => c.titre).join(', ')}`)
-  }
-
-  // 2. Clôture des chantiers (si date de fin < aujourd'hui)
+  // --- 1. CLÔTURE (Date fin < Aujourd'hui) ---
   const chantiersToFinish = await prisma.chantier.findMany({
     where: {
-      statut: StatutChantier.EN_COURS,
-      dateFinPrevue: { lt: startOfToday },
+      statut: { in: [StatutChantier.EN_COURS, StatutChantier.SUSPENDU, StatutChantier.EN_ATTENTE] },
+      dateFinPrevue: { not: null },
     },
-    select: { id: true, titre: true, createdById: true },
+    select: { id: true, titre: true, createdById: true, dateFinPrevue: true },
   })
 
-  if (chantiersToFinish.length > 0) {
+  const toFinishIds = chantiersToFinish
+    .filter(c => {
+      const d = new Date(c.dateFinPrevue!)
+      const finishDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      return finishDate.getTime() < todayTime
+    })
+    .map(c => c.id)
+
+  if (toFinishIds.length > 0) {
     await prisma.chantier.updateMany({
-      where: { id: { in: chantiersToFinish.map(c => c.id) } },
+      where: { id: { in: toFinishIds } },
       data: { statut: StatutChantier.TERMINE },
     })
-
-    for (const c of chantiersToFinish) {
+    for (const id of toFinishIds) {
+      const c = chantiersToFinish.find(x => x.id === id)!
       await prisma.actionJournal.create({
         data: {
           action: 'CHANGEMENT_STATUT',
@@ -76,16 +44,89 @@ export async function autoUpdateChantierStatuts() {
           auteurId: c.createdById,
           details: `Clôture automatique (Date de fin dépassée)`,
         }
-      }).catch(err => console.error(`[AutoStatut] Journal error for ${c.titre}:`, err))
-
-      await notifyProjectMembers(
-        c.id,
-        "Clôture automatique",
-        `Le chantier "${c.titre}" a été clôturé automatiquement.`
-      )
+      }).catch(() => {})
+      await notifyProjectMembers(c.id, "Clôture automatique", `Le chantier "${c.titre}" a été clôturé automatiquement.`)
     }
+  }
 
-    console.log(`[AutoStatut] ${chantiersToFinish.length} chantier(s) passé(s) en TERMINE : ${chantiersToFinish.map(c => c.titre).join(', ')}`)
+  // --- 2. DÉMARRAGE (EN_ATTENTE -> EN_COURS) ---
+  const chantiersToStart = await prisma.chantier.findMany({
+    where: {
+      statut: StatutChantier.EN_ATTENTE,
+      dateDebutPrevue: { lte: now },
+    },
+    select: { id: true, titre: true, createdById: true, dateFinPrevue: true },
+  })
+
+  const toStartIds = chantiersToStart
+    .filter(c => {
+      if (!c.dateFinPrevue) return true
+      const d = new Date(c.dateFinPrevue)
+      const finishDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+      return finishDate.getTime() >= todayTime
+    })
+    .map(c => c.id)
+
+  if (toStartIds.length > 0) {
+    await prisma.chantier.updateMany({
+      where: { id: { in: toStartIds } },
+      data: { statut: StatutChantier.EN_COURS },
+    })
+    for (const id of toStartIds) {
+      const c = chantiersToStart.find(x => x.id === id)!
+      await prisma.actionJournal.create({
+        data: {
+          action: 'CHANGEMENT_STATUT',
+          chantierId: c.id,
+          auteurId: c.createdById, 
+          details: `Démarrage automatique (Date de début atteinte)`,
+        }
+      }).catch(() => {})
+      await notifyProjectMembers(c.id, "Démarrage automatique", `Le chantier "${c.titre}" a démarré automatiquement.`)
+    }
+  }
+
+  // --- 3. RÉ-OUVERTURE (TERMINE -> EN_COURS si prolongé) ---
+  const chantiersToReopen = await prisma.chantier.findMany({
+    where: { statut: StatutChantier.TERMINE },
+    select: { id: true, titre: true, createdById: true, dateDebutPrevue: true, dateFinPrevue: true },
+  })
+
+  const toReopenIds = chantiersToReopen
+    .filter(c => {
+      // Un chantier ré-ouvre si DateDébut <= Aujourd'hui ET (DateFin est null OU DateFin >= Aujourd'hui)
+      const startD = new Date(c.dateDebutPrevue)
+      const startDate = new Date(startD.getFullYear(), startD.getMonth(), startD.getDate())
+      
+      let isEndDateValid = true
+      if (c.dateFinPrevue) {
+        const endD = new Date(c.dateFinPrevue)
+        const endDate = new Date(endD.getFullYear(), endD.getMonth(), endD.getDate())
+        isEndDateValid = endDate.getTime() >= todayTime
+      }
+
+      return startDate.getTime() <= todayTime && isEndDateValid
+    })
+    .map(c => c.id)
+
+  if (toReopenIds.length > 0) {
+    await prisma.chantier.updateMany({
+      where: { id: { in: toReopenIds } },
+      data: { statut: StatutChantier.EN_COURS },
+    })
+    for (const id of toReopenIds) {
+      const c = chantiersToReopen.find(x => x.id === id)!
+      await prisma.actionJournal.create({
+        data: {
+          action: 'CHANGEMENT_STATUT',
+          chantierId: c.id,
+          auteurId: c.createdById, 
+          details: `Ré-ouverture automatique (Date de fin prolongée)`,
+        }
+      }).catch(() => {})
+      await notifyProjectMembers(c.id, "Ré-ouverture automatique", `Le chantier "${c.titre}" a été ré-ouvert car sa date de fin a été prolongée.`)
+    }
+    console.log(`[AutoStatut] ${toReopenIds.length} chantiers ré-ouverts.`)
   }
 }
 

@@ -149,10 +149,11 @@ export default async function EquipePage({
                           <td className="px-5 py-3.5">
                             {m.id !== user.id && (
                               <div className="flex items-center gap-2 justify-end opacity-0 group-hover:opacity-100 transition">
-                                <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                                {m.role === 'CHEF_CHANTIER' && (
+                                  <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                                )}
                                 <SupprimerMembreButton userId={m.id} nom={m.nom} />
-                              </div>
-                            )}
+                              </div>                            )}
                           </td>
                         )}
                       </tr>
@@ -182,7 +183,9 @@ export default async function EquipePage({
                         </span>
                         {isChef && m.id !== user.id && (
                           <div className="flex items-center gap-2">
-                            <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                            {m.role === 'CHEF_CHANTIER' && (
+                              <ChangerRoleButton userId={m.id} roleActuel={m.role} />
+                            )}
                             <SupprimerMembreButton userId={m.id} nom={m.nom} />
                           </div>
                         )}

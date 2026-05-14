@@ -1,5 +1,6 @@
-  import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { syncChantiersMeteo } from '@/lib/meteo';
+import { autoUpdateChantierStatuts } from '@/lib/chantiers';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +14,15 @@ export async function GET(request: Request) {
       console.warn('[METEO SYNC] Bypassing CRON_SECRET check in development mode.');
     }
     try {
+      // 1. Mise à jour des statuts par date
+      await autoUpdateChantierStatuts();
+
+      // 2. Sync météo
       const results = await syncChantiersMeteo();
+      
       return NextResponse.json({ success: true, results });
     } catch (error) {
-      console.error('Meteo Sync Error:', error);
+      console.error('Sync Error:', error);
       return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
     }
   }

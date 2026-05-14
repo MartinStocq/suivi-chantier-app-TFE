@@ -22,6 +22,11 @@ export default async function UtilisateurPointagesPage({
   const { id } = await params
   const { start, end } = await searchParams
 
+  // Sécurité : Un ouvrier ne peut voir que son propre historique
+  if (user.role !== 'CHEF_CHANTIER' && user.id !== id) {
+    redirect(`/utilisateurs/${user.id}/pointages`)
+  }
+
   const filters: any = { utilisateurId: id }
   if (start || end) {
     filters.date = {}

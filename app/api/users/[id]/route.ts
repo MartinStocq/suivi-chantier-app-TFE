@@ -42,6 +42,11 @@ export async function PUT(
     return NextResponse.json({ error: 'Seul un chef peut changer les rôles' }, { status: 403 })
   }
 
+  // Empêcher un chef de nommer quelqu'un chef (il peut seulement rétrograder)
+  if (body.role === 'CHEF_CHANTIER' && me.role === 'CHEF_CHANTIER') {
+    return NextResponse.json({ error: 'Un chef ne peut pas promouvoir un autre membre au rang de chef' }, { status: 403 })
+  }
+
   const validRoles: Role[] = ['OUVRIER', 'CHEF_CHANTIER']
   const data: { nom?: string; role?: Role } = {}
   if (body.nom)                                    data.nom  = body.nom

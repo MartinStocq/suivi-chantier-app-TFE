@@ -12,6 +12,8 @@ import PointageForm from '@/components/chantiers/PointageForm'
 import Avatar from '@/components/ui/Avatar'
 import { HardHat, Plus, TrendingUp, Clock, CalendarDays } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Dashboard({
   searchParams,
 }: {

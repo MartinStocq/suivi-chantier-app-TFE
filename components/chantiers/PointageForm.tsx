@@ -195,7 +195,7 @@ export default function PointageForm({ chantiers, currentUserRole, ouvriers, cur
     { id: 'MALADIE', label: 'Maladie', icon: Stethoscope, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
     { id: 'CONGE_PAYE', label: 'Congé', icon: Palmtree, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
     { id: 'INTEMPERIE', label: 'Intempérie', icon: CloudRain, color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-200' },
-  ]
+  ].filter(t => isChef || t.id === 'TRAVAIL')
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">

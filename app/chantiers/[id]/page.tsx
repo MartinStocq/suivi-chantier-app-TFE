@@ -30,11 +30,11 @@ export default async function ChantierDetailPage({
   const user = await getCurrentUser()
   if (!user) redirect('/login')
 
-  // Mise à jour automatique des statuts et de la météo
-  await autoUpdateChantierStatuts()
-  await autoUpdateMeteo()
-
   const { id } = await params
+
+  // Mise à jour automatique des statuts et de la météo pour ce chantier
+  await autoUpdateChantierStatuts()
+  await autoUpdateMeteo(id)
 
   const chantier = await prisma.chantier.findUnique({
     where: { id },
@@ -109,8 +109,8 @@ export default async function ChantierDetailPage({
     }
   }
 
-  // 2. Récupération des prévisions
-  if (lat !== null && lon !== null) {
+  // 2. Récupération des prévisions (uniquement si non terminé)
+  if (chantier.statut !== 'TERMINE' && lat !== null && lon !== null) {
     try {
       const fullForecast = await getForecast(lat, lon)
       if (fullForecast && fullForecast.length > 0) {
@@ -131,7 +131,7 @@ export default async function ChantierDetailPage({
         forecastDays = fullForecast.slice(0, 5)
       }
     } catch (e) {
-      console.error("Erreur lors de la récupération du forecast.:", e)
+      console.error("Erreur lors de la récupération du forecast:", e)
     }
   }
 
@@ -168,7 +168,7 @@ export default async function ChantierDetailPage({
           
           <div className="flex items-center gap-2">
             <MeteoSyncButton />
-            <ExportButton chantierId={id} />
+            {isChef && <ExportButton chantierId={id} />}
             {isChef && (
               <Link href={`/chantiers/${id}/edit`} 
                 className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-all">
@@ -316,80 +316,82 @@ export default async function ChantierDetailPage({
               )}
             </div>
 
-            {/* 6. Bloc Météo (Mobile: 6th) */}
-            <div className="order-6 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
-               <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Météo</h3>
-                    <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase tracking-widest">
-                      {currentMeteo ? 'Temps Réel' : 'Prévue'}
+            {/* 6. Bloc Météo (Mobile: 6th) - Uniquement si non terminé */}
+            {chantier.statut !== 'TERMINE' && (
+              <div className="order-6 lg:order-none bg-white border border-gray-200 rounded-2xl p-6 lg:mb-6">
+                <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Météo</h3>
+                      <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-black uppercase tracking-widest">
+                        {currentMeteo ? 'Temps Réel' : 'Prévue'}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-6">
-                    <div className="text-5xl">
-                      {getWeatherIcon(currentMeteo ? currentMeteo.weather_code : (scheduledMeteo?.code ?? 0))}
+                    
+                    <div className="flex items-center gap-6">
+                      <div className="text-5xl">
+                        {getWeatherIcon(currentMeteo ? currentMeteo.weather_code : (scheduledMeteo?.code ?? 0))}
+                      </div>
+                      <div>
+                        <p className="text-3xl font-black text-gray-900 tabular-nums">
+                          {Math.round(currentMeteo ? currentMeteo.temperature_2m : (scheduledMeteo?.max ?? 0))}°C
+                        </p>
+                        <p className="text-[11px] text-gray-500 uppercase font-bold tracking-tight">
+                          {currentMeteo ? 'Actuellement' : 'Maximum prévu'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-3xl font-black text-gray-900 tabular-nums">
-                        {Math.round(currentMeteo ? currentMeteo.temperature_2m : (scheduledMeteo?.max ?? 0))}°C
-                      </p>
-                      <p className="text-[11px] text-gray-500 uppercase font-bold tracking-tight">
-                        {currentMeteo ? 'Actuellement' : 'Maximum prévu'}
-                      </p>
-                    </div>
-                  </div>
-               </div>
+                </div>
 
-               <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                     <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Wind size={12} />
-                        <span className="text-[10px] font-bold uppercase">Vent</span>
-                     </div>
-                     <p className="text-sm font-black text-gray-700">{currentMeteo?.wind_speed_10m || '--'} <span className="text-[10px] font-medium uppercase italic">km/h</span></p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                     <div className="flex items-center gap-2 text-gray-400 mb-1">
-                        <Droplets size={12} />
-                        <span className="text-[10px] font-bold uppercase">Pluie</span>
-                     </div>
-                     <p className="text-sm font-black text-gray-700">{currentMeteo?.precipitation || '0'} <span className="text-[10px] font-medium uppercase italic">mm</span></p>
-                  </div>
-               </div>
+                <div className="mt-8 grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center gap-2 text-gray-400 mb-1">
+                          <Wind size={12} />
+                          <span className="text-[10px] font-bold uppercase">Vent</span>
+                      </div>
+                      <p className="text-sm font-black text-gray-700">{currentMeteo?.wind_speed_10m || '--'} <span className="text-[10px] font-medium uppercase italic">km/h</span></p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl">
+                      <div className="flex items-center gap-2 text-gray-400 mb-1">
+                          <Droplets size={12} />
+                          <span className="text-[10px] font-bold uppercase">Pluie</span>
+                      </div>
+                      <p className="text-sm font-black text-gray-700">{currentMeteo?.precipitation || '0'} <span className="text-[10px] font-medium uppercase italic">mm</span></p>
+                    </div>
+                </div>
 
-               {/* Prévisions à venir */}
-               {forecastDays.length > 0 && (
-                 <div className="mt-8 pt-6 border-t border-gray-100">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Prochains jours</h4>
-                    <div className="space-y-3">
-                      {forecastDays.map((f: any, idx: number) => {
-                        const isFavor = checkWeatherFavorability(f.tempMax, f.precipitationSum, f.windSpeedMax, f.weatherCode)
-                        return (
-                          <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                            <div className="flex items-center gap-3">
-                              <span className="text-xl">{getWeatherIcon(f.weatherCode)}</span>
-                              <div>
-                                <p className="text-xs font-bold text-gray-900">
-                                  {new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric' })}
-                                </p>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`w-1.5 h-1.5 rounded-full ${isFavor.isFavorable ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                                  <p className="text-[9px] font-bold uppercase text-gray-400">{isFavor.isFavorable ? 'Favorable' : 'Difficile'}</p>
+                {/* Prévisions à venir */}
+                {forecastDays.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-gray-100">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Prochains jours</h4>
+                      <div className="space-y-3">
+                        {forecastDays.map((f: any, idx: number) => {
+                          const isFavor = checkWeatherFavorability(f.tempMax, f.precipitationSum, f.windSpeedMax, f.weatherCode)
+                          return (
+                            <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">{getWeatherIcon(f.weatherCode)}</span>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900">
+                                    {new Date(f.date).toLocaleDateString('fr-BE', { weekday: 'short', day: 'numeric' })}
+                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${isFavor.isFavorable ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                    <p className="text-[9px] font-bold uppercase text-gray-400">{isFavor.isFavorable ? 'Favorable' : 'Difficile'}</p>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="text-right">
+                                <p className="text-xs font-black text-gray-900">{Math.round(f.tempMax)}°</p>
+                                <p className="text-[9px] font-medium text-gray-400">{Math.round(f.tempMin)}°</p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                               <p className="text-xs font-black text-gray-900">{Math.round(f.tempMax)}°</p>
-                               <p className="text-[9px] font-medium text-gray-400">{Math.round(f.tempMin)}°</p>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                 </div>
-               )}
-            </div>
+                          )
+                        })}
+                      </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 7. Statistiques rapides (Total Heures) (Mobile: 7th) */}
             <div className="order-7 lg:order-none bg-gray-900 rounded-2xl p-6 text-white lg:mb-6">

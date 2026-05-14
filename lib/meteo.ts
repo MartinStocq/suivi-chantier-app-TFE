@@ -64,17 +64,32 @@ export async function getCoordinates(query: string) {
   }
 }
 
+const DEFAULT_WEATHER: WeatherCondition & { rawPayload: string } = {
+  temperature: 0,
+  precipitation: 0,
+  windSpeed: 0,
+  weatherCode: 0,
+  isFavorable: true,
+  reason: "Indisponible",
+  rawPayload: "{}"
+};
+
 export async function getWeatherData(lat: number, lon: number): Promise<WeatherCondition & { rawPayload: string }> {
   const url = `${OPEN_METEO_URL}?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code,wind_speed_10m`;
   
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch weather data: ${response.statusText}`);
+      console.error(`[Meteo] getWeatherData failed for ${lat},${lon}: ${response.status} ${response.statusText}`);
+      return DEFAULT_WEATHER;
     }
 
     const data = await response.json();
     const current = data.current;
+
+    if (!current) {
+      return DEFAULT_WEATHER;
+    }
 
     const temperature = current.temperature_2m;
     const precipitation = current.precipitation;
@@ -93,17 +108,8 @@ export async function getWeatherData(lat: number, lon: number): Promise<WeatherC
       rawPayload: JSON.stringify(data)
     };
   } catch (error) {
-    console.error(`[Meteo] getWeatherData failed for ${lat},${lon}:`, error);
-    // Retourner un objet par défaut pour éviter de casser le flux
-    return {
-      temperature: 0,
-      precipitation: 0,
-      windSpeed: 0,
-      weatherCode: 0,
-      isFavorable: true,
-      reason: "Indisponible",
-      rawPayload: "{}"
-    };
+    console.error(`[Meteo] getWeatherData exception for ${lat},${lon}:`, error);
+    return DEFAULT_WEATHER;
   }
 }
 
@@ -133,7 +139,7 @@ export async function getForecast(lat: number, lon: number) {
   }
 }
 
-export async function autoUpdateMeteo() {
+export async function autoUpdateMeteo(specificChantierId?: string) {
   const now = new Date();
   const currentHour = now.getHours();
 
@@ -155,6 +161,7 @@ export async function autoUpdateMeteo() {
   // On cherche s'il y a des chantiers actifs qui n'ont pas de snapshot récent dans ce créneau
   const needsUpdate = await prisma.chantier.findFirst({
     where: {
+      id: specificChantierId,
       statut: { in: [StatutChantier.EN_COURS, StatutChantier.SUSPENDU, StatutChantier.EN_ATTENTE] },
       OR: [
         { meteoSnapshots: { none: {} } },
@@ -170,14 +177,15 @@ export async function autoUpdateMeteo() {
   });
 
   if (needsUpdate) {
-    console.log(`[AutoMeteo] Déclenchement de la mise à jour pour le créneau de ${slotStartHour}h.`);
-    await syncChantiersMeteo();
+    console.log(`[AutoMeteo] Déclenchement de la mise à jour pour ${specificChantierId ? 'le chantier ' + specificChantierId : 'tous les chantiers'} (créneau de ${slotStartHour}h).`);
+    await syncChantiersMeteo(specificChantierId);
   }
 }
 
-export async function syncChantiersMeteo() {
+export async function syncChantiersMeteo(chantierId?: string) {
   const chantiers = await prisma.chantier.findMany({
     where: {
+      id: chantierId,
       statut: {
         in: [StatutChantier.EN_COURS, StatutChantier.SUSPENDU, StatutChantier.EN_ATTENTE]
       }
