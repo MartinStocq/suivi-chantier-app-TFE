@@ -1,7 +1,5 @@
-import { Resend } from 'resend';
 import { prisma } from './prisma';
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+import { sendMail } from './mail';
 
 export async function sendMeteoNotification(
   email: string, 
@@ -10,30 +8,30 @@ export async function sendMeteoNotification(
   reason: string,
   chantierId?: string
 ) {
-  // 1. Notification par email
-  if (resend) {
-    const subject = `[ALERTE MÉTÉO] Chantier ${chantierTitre} : ${action}`;
-    
-    try {
-      await resend.emails.send({
-        from: 'Meteo <onboarding@resend.dev>', // À changer en prod
-        to: email,
-        subject: subject,
-        html: `
-          <h1>Alerte Météo Automatique</h1>
+  // 1. Notification par email via SMTP
+  const subject = `[ALERTE MÉTÉO] Chantier ${chantierTitre} : ${action}`;
+  
+  try {
+    await sendMail({
+      to: email,
+      subject: subject,
+      text: `Bonjour,\n\nLe statut du chantier ${chantierTitre} a été automatiquement mis à jour.\n\nNouveau statut : ${action}\nRaison : ${reason}\n\nCeci est un message automatique.`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h1 style="color: #3b82f6;">Alerte Météo Automatique</h1>
           <p>Le statut du chantier <strong>${chantierTitre}</strong> a été automatiquement mis à jour.</p>
-          <p>Nouveau statut : <strong>${action}</strong></p>
-          <p>Raison : ${reason}</p>
-          <hr />
-          <p>Ceci est un message automatique du système de suivi de chantier.</p>
-        `
-      });
-      console.log(`Email notification sent to ${email} for chantier ${chantierTitre}`);
-    } catch (error) {
-      console.error(`Failed to send email to ${email}:`, error);
-    }
-  } else {
-    console.warn('RESEND_API_KEY not set, skipping email notification');
+          <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0;">Nouveau statut : <strong style="color: ${action === 'SUSPENDU' ? '#ef4444' : '#10b981'};">${action}</strong></p>
+            <p style="margin: 10px 0 0 0;">Raison : <em>${reason}</em></p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #666;">Ceci est un message automatique du système de suivi de chantier.</p>
+        </div>
+      `
+    });
+    console.log(`Email notification sent to ${email} for chantier ${chantierTitre}`);
+  } catch (error) {
+    console.error(`Failed to send email to ${email}:`, error);
   }
 
   // 2. Notification In-App

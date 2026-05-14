@@ -6,6 +6,70 @@ import { createClient } from '@supabase/supabase-js'
 import { getCoordinates } from '@/lib/meteo'
 import { notifyProjectMembers } from '@/lib/notifications'
 
+import { sendMail } from '@/lib/mail'
+
+// Helper pour envoyer l'alerte manuelle aux ouvriers après 10s
+async function triggerManualSuspensionAlert(chantierId: string, titre: string) {
+  // Attendre 10 secondes
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Vérifier si le chantier est toujours suspendu
+  const current = await prisma.chantier.findUnique({
+    where: { id: chantierId },
+    include: {
+      createdBy: true,
+      client: true,
+      adresse: true,
+      affectations: { include: { user: true } }
+    }
+  });
+
+  if (current && current.statut === StatutChantier.SUSPENDU) {
+    console.log(`[ALERT] Suspension confirmée pour ${titre} après 10s. Envoi des emails...`);
+    
+    const recipients = new Map<string, { email: string, nom: string }>();
+    if (current.createdBy.email) {
+      recipients.set(current.createdBy.id, { email: current.createdBy.email, nom: current.createdBy.nom });
+    }
+    for (const a of current.affectations) {
+      if (a.user.email) {
+        recipients.set(a.user.id, { email: a.user.email, nom: a.user.nom });
+      }
+    }
+
+    const adresseComplete = `${current.adresse.rue} ${current.adresse.numero}, ${current.adresse.codePostal} ${current.adresse.ville}`;
+
+    for (const contact of recipients.values()) {
+      await sendMail({
+        to: contact.email,
+        subject: `⚠️ Chantier Suspendu : ${current.titre}`,
+        text: `Bonjour ${contact.nom},\n\nLe chantier "${current.titre}" (Client: ${current.client.nom}, Adresse: ${adresseComplete}) vient d'être suspendu.\n\nL'équipe de Suivi de Chantier`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #fecaca; border-radius: 12px; max-width: 600px; background: #fffcfc;">
+            <h2 style="color: #b91c1c; margin-top: 0;">Chantier Suspendu</h2>
+            <p>Bonjour <strong>${contact.nom}</strong>,</p>
+            <p>Le chantier <strong>${current.titre}</strong> a été mis en pause.</p>
+            
+            <div style="margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px;">
+              <p style="margin: 0 0 5px 0;"><strong>Client :</strong> ${current.client.nom}</p>
+              <p style="margin: 0;"><strong>Adresse :</strong> ${adresseComplete}</p>
+            </div>
+
+            <div style="background: #fee2e2; padding: 20px; border-radius: 8px; color: #991b1b; text-align: center; margin: 25px 0;">
+              <span style="font-size: 18px; font-weight: bold;">STATUT : SUSPENDU</span>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #fee2e2; margin: 25px 0;" />
+            <p style="font-size: 11px; color: #999;">Notification manuelle - Suivi de Chantier App</p>
+          </div>
+        `
+      }).catch(err => console.error(`Erreur email pour ${contact.email}:`, err));
+    }
+  } else {
+    console.log(`[ALERT] Suspension annulée pour ${titre} (le statut a changé en 10s).`);
+  }
+}
+
 function parseStatut(val: unknown): StatutChantier {
   const str = String(val ?? '').toUpperCase().replace(/[^A-Z]/g, '')
   const all = Object.values(StatutChantier)
@@ -78,6 +142,12 @@ export async function PUT(
       
       if (existing.statut !== targetStatut) {
         console.log(`[API PUT] Status changed from ${existing.statut}. Notifying members...`);
+        
+        // Déclenchement de l'alerte différée si SUSPENDU manuellement
+        if (targetStatut === StatutChantier.SUSPENDU) {
+          triggerManualSuspensionAlert(id, existing.titre);
+        }
+
         await prisma.actionJournal.create({
           data: {
             action: 'CHANGEMENT_STATUT',
@@ -156,6 +226,12 @@ export async function PUT(
 
     if (statut && existing.statut !== parseStatut(statut)) {
       console.log(`[API PUT] Full update: Status changed to ${parseStatut(statut)}. Notifying...`);
+      
+      const newStatut = parseStatut(statut);
+      if (newStatut === StatutChantier.SUSPENDU) {
+        triggerManualSuspensionAlert(chantier.id, chantier.titre);
+      }
+
       await prisma.actionJournal.create({
         data: {
           action: 'CHANGEMENT_STATUT',
