@@ -8,10 +8,15 @@ import { Resend } from 'resend';
  */
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+const smtpPort = parseInt(process.env.SMTP_PORT || '465');
+const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+
+console.log(`[MAIL] Initializing SMTP: ${process.env.SMTP_HOST}:${smtpPort} (secure: ${smtpSecure})`);
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : true,
+  port: smtpPort,
+  secure: smtpSecure,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
