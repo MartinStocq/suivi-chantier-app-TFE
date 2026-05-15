@@ -8,12 +8,8 @@ import { notifyProjectMembers } from '@/lib/notifications'
 
 import { sendMail } from '@/lib/mail'
 
-// Helper pour envoyer l'alerte manuelle aux ouvriers après 10s
+// Helper pour envoyer l'alerte manuelle aux ouvriers immédiatement
 async function triggerManualSuspensionAlert(chantierId: string, titre: string) {
-  // Attendre 10 secondes
-  await new Promise(resolve => setTimeout(resolve, 10000));
-
-  // Vérifier si le chantier est toujours suspendu
   const current = await prisma.chantier.findUnique({
     where: { id: chantierId },
     include: {
@@ -24,8 +20,8 @@ async function triggerManualSuspensionAlert(chantierId: string, titre: string) {
     }
   });
 
-  if (current && current.statut === StatutChantier.SUSPENDU) {
-    console.log(`[ALERT] Suspension confirmée pour ${titre} après 10s. Envoi des emails...`);
+  if (current) {
+    console.log(`[ALERT] Envoi des emails pour la suspension de ${titre}...`);
     
     const recipients = new Map<string, { email: string, nom: string }>();
     if (current.createdBy.email) {
@@ -65,8 +61,6 @@ async function triggerManualSuspensionAlert(chantierId: string, titre: string) {
         `
       }).catch(err => console.error(`Erreur email pour ${contact.email}:`, err));
     }
-  } else {
-    console.log(`[ALERT] Suspension annulée pour ${titre} (le statut a changé en 10s).`);
   }
 }
 
