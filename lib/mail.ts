@@ -1,12 +1,17 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 /**
- * Configure le transporteur SMTP à partir des variables d'environnement.
+ * Configure les services d'envoi d'email.
+ * On privilégie Resend si une clé API est présente (recommandé pour la production).
+ * On utilise Nodemailer/SMTP comme solution de repli (pour le développement local).
  */
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: process.env.SMTP_SECURE === 'true' || true, // true pour le port 465, false pour les autres
+  secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
@@ -21,11 +26,36 @@ export interface MailOptions {
 }
 
 /**
- * Envoie un email via SMTP.
+ * Envoie un email via Resend (API) ou SMTP.
  */
 export async function sendMail({ to, subject, text, html }: MailOptions) {
+  // Option 1 : Resend (Préféré en production)
+  if (resend) {
+    try {
+      const fromEmail = process.env.MAIL_FROM || 'onboarding@resend.dev';
+      const { data, error } = await resend.emails.send({
+        from: `Suivi de Chantier <${fromEmail}>`,
+        to: [to],
+        subject,
+        text,
+        html: html || text,
+      });
+
+      if (error) {
+        console.error('[MAIL] Resend error:', error);
+        // On continue vers SMTP si Resend échoue et que SMTP est configuré
+      } else {
+        console.log('[MAIL] Email sent via Resend:', data?.id);
+        return data;
+      }
+    } catch (error) {
+      console.error('[MAIL] Resend exception:', error);
+    }
+  }
+
+  // Option 2 : SMTP (Repli ou développement local)
   if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    console.warn('[MAIL] SMTP credentials missing. Skipping email.');
+    console.warn('[MAIL] No valid email configuration found (Resend or SMTP). Skipping email.');
     return;
   }
 
@@ -37,10 +67,10 @@ export async function sendMail({ to, subject, text, html }: MailOptions) {
       text,
       html: html || text,
     });
-    console.log('[MAIL] Email sent: %s', info.messageId);
+    console.log('[MAIL] Email sent via SMTP: %s', info.messageId);
     return info;
   } catch (error) {
-    console.error('[MAIL] Error sending email:', error);
+    console.error('[MAIL] SMTP Error:', error);
     throw error;
   }
 }
