@@ -139,7 +139,7 @@ export async function PUT(
         
         // Déclenchement de l'alerte différée si SUSPENDU manuellement
         if (targetStatut === StatutChantier.SUSPENDU) {
-          triggerManualSuspensionAlert(id, existing.titre);
+          await triggerManualSuspensionAlert(id, existing.titre);
         }
 
         await prisma.actionJournal.create({
@@ -223,7 +223,7 @@ export async function PUT(
       
       const newStatut = parseStatut(statut);
       if (newStatut === StatutChantier.SUSPENDU) {
-        triggerManualSuspensionAlert(chantier.id, chantier.titre);
+        await triggerManualSuspensionAlert(chantier.id, chantier.titre);
       }
 
       await prisma.actionJournal.create({
