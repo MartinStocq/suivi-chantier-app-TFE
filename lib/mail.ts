@@ -14,15 +14,15 @@ export interface MailOptions {
 export async function sendMail({ to, subject, text, html }: MailOptions) {
   console.log(`[MAIL] Tentative d'envoi d'email à: ${to} (Sujet: ${subject})`);
 
-  // Option 1 : Resend (Préféré en production)
+  // Option 1 : Resend (Préféré en production si configuré)
   const resendApiKey = process.env.RESEND_API_KEY;
-  if (resendApiKey) {
+  if (resendApiKey && resendApiKey !== "" && resendApiKey !== "your_resend_api_key") {
     try {
       console.log('[MAIL] Utilisation de Resend API...');
       const resend = new Resend(resendApiKey);
       const fromEmail = process.env.MAIL_FROM || 'onboarding@resend.dev';
       
-      const { data, error } = await resend.emails.send({
+      const result = await resend.emails.send({
         from: `Suivi de Chantier <${fromEmail}>`,
         to: [to],
         subject,
@@ -30,23 +30,24 @@ export async function sendMail({ to, subject, text, html }: MailOptions) {
         html: html || text,
       });
 
-      if (error) {
-        console.error('[MAIL] Erreur Resend détaillée:', error);
-        // On continue vers SMTP si Resend échoue
+      if (result.error) {
+        console.error('[MAIL] Erreur Resend détaillée:', result.error);
+        console.log('[MAIL] Échec Resend, tentative de repli sur SMTP...');
       } else {
-        console.log('[MAIL] Email envoyé avec succès via Resend:', data?.id);
-        return data;
+        console.log('[MAIL] Email envoyé avec succès via Resend:', result.data?.id);
+        return result.data;
       }
     } catch (error) {
       console.error('[MAIL] Exception lors de l\'envoi via Resend:', error);
+      console.log('[MAIL] Exception Resend, tentative de repli sur SMTP...');
     }
   } else {
-    console.log('[MAIL] RESEND_API_KEY non configurée, passage au SMTP.');
+    console.log('[MAIL] RESEND_API_KEY absente ou invalide, utilisation du SMTP.');
   }
 
-  // Option 2 : SMTP (Repli ou développement local)
+  // Option 2 : SMTP
   if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-    console.warn('[MAIL] Configuration SMTP manquante (SMTP_USER ou SMTP_PASSWORD). Skipping.');
+    console.error('[MAIL] ERREUR : Configuration SMTP manquante (SMTP_USER ou SMTP_PASSWORD).');
     return;
   }
 

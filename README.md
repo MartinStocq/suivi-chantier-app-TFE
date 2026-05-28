@@ -1,42 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Suivi de Chantier - Application de Gestion
 
-## Développement
+Une application web moderne pour le suivi de chantiers, permettant la gestion des pointages, de la météo, des photos et des équipes.
 
-### Synchronisation Météo
+## Installation & Démarrage
 
-En mode développement (`NODE_ENV !== 'production'`), la vérification de `CRON_SECRET` est ignorée pour faciliter les tests. Vous pouvez déclencher la synchronisation manuellement via :
-`GET /api/meteo/sync`
+Suivez ces étapes pour lancer le projet localement :
 
-En production, une clé `key` correspondant à `CRON_SECRET` est requise :
-`GET /api/meteo/sync?key=VOTRE_SECRET`
+### 1. Prérequis
+- Node.js (v18+)
+- Une base de données PostgreSQL (ou un projet Supabase)
+- Un compte Supabase (pour l'authentification et le stockage)
 
+### 2. Installation
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Cloner le dépôt
+git clone <url-du-repo>
+cd suivi-chantier-app
+
+# Installer les dépendances
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Configuration
+1. Copiez le fichier d'exemple :
+   ```bash
+   cp .env.example .env
+   ```
+2. Modifiez le fichier `.env` avec vos propres accès (DATABASE_URL, SUPABASE_URL, etc.).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Base de données
+```bash
+# Synchroniser le schéma Prisma avec votre base
+npx prisma migrate dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 5. Lancer l'application
+```bash
+npm run dev
+```
+L'application sera disponible sur [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+##  Développement
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Synchronisation Météo
+En mode développement (`NODE_ENV !== 'production'`), la vérification de `CRON_SECRET` est ignorée pour faciliter les tests.
+- Déclenchement manuel : `GET /api/meteo/sync`
+- En production : `GET /api/meteo/sync?key=VOTRE_SECRET` (nécessite `CRON_SECRET`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Tests
+```bash
+npm test
+```
 
-## Deploy on Vercel
+##  Stack Technique
+- **Framework** : [Next.js 15+](https://nextjs.org/)
+- **Base de données** : [PostgreSQL](https://www.postgresql.org/) avec [Prisma ORM](https://www.prisma.io/)
+- **Auth & Stockage** : [Supabase](https://supabase.com/)
+- **Emails** : [Resend](https://resend.com/) / [Nodemailer](https://nodemailer.com/)
+- **Styling** : [Tailwind CSS](https://tailwindcss.com/)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
