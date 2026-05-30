@@ -58,7 +58,6 @@ npm test
 - **Framework** : [Next.js 15+](https://nextjs.org/)
 - **Base de données** : [PostgreSQL](https://www.postgresql.org/) avec [Prisma ORM](https://www.prisma.io/)
 - **Auth & Stockage** : [Supabase](https://supabase.com/)
-- **Emails** : [Resend](https://resend.com/) / [Nodemailer](https://nodemailer.com/)
 - **Styling** : [Tailwind CSS](https://tailwindcss.com/)
 
 ---
