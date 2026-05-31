@@ -1,8 +1,8 @@
-// proxy.ts
+// middleware.ts
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -51,9 +51,12 @@ export async function proxy(request: NextRequest) {
   */
 
   // 3. Connecté + approuvé → redirige depuis login/register vers dashboard
+  // DÉSACTIVÉ pour éviter les boucles ERR_TOO_MANY_REDIRECTS si Prisma n'est pas encore synchro
+  /*
   if (user && (pathname.startsWith('/login') || pathname.startsWith('/register'))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
+  */
 
   return response
 }

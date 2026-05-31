@@ -23,7 +23,7 @@ export async function getCurrentUser() {
   const supabaseUser = await getSupabaseUser()
   if (!supabaseUser) return null
 
-  const user = await prisma.utilisateur.findUnique({
+  let user = await prisma.utilisateur.findUnique({
     where: { id: supabaseUser.id },
     select: {
       id:         true,
@@ -32,8 +32,37 @@ export async function getCurrentUser() {
       role:       true,
       approuve:   true,
       telephone:  true,
-      avatarPath: true,   // ← ajouté
+      avatarPath: true,
     },
   })
+
+  // Auto-réparation du profil si manquant (ex: après db:reset)
+  if (!user && supabaseUser.email) {
+    try {
+      user = await prisma.utilisateur.create({
+        data: {
+          id: supabaseUser.id,
+          email: supabaseUser.email,
+          nom: supabaseUser.user_metadata?.nom || supabaseUser.user_metadata?.full_name || supabaseUser.email.split('@')[0],
+          approuve: false, // Par défaut, doit être approuvé par un admin
+          role: 'OUVRIER',
+        },
+        select: {
+          id:         true,
+          nom:        true,
+          email:      true,
+          role:       true,
+          approuve:   true,
+          telephone:  true,
+          avatarPath: true,
+        },
+      })
+      console.log(`Profil auto-réparé pour l'utilisateur : ${supabaseUser.email}`)
+    } catch (error) {
+      console.error("Erreur lors de l'auto-réparation du profil :", error)
+      return null
+    }
+  }
+
   return user
 }
