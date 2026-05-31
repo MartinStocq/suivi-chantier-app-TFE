@@ -14,6 +14,10 @@ Pour faciliter l'évaluation du projet sans configuration complexe, un environne
 
 ---
 
+Video tuto : 
+
+https://youtu.be/pCp-K48-U9U
+
 ## 🛠️ Installation & Démarrage local
 
 Si vous souhaitez faire tourner l'application localement, suivez ces étapes :
@@ -88,6 +92,8 @@ npm run test
 ```
 
 ---
+
+
 
 ## 💻 Stack Technique
 - **Framework** : Next.js 16 (App Router, Server Actions)
