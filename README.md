@@ -4,49 +4,45 @@ Une application web moderne (« Mobile-First ») pour le suivi de chantiers, per
 
 ---
 
-## 🚀 Évaluation rapide (Mode Démo pour le Jury)
+## 🚀 Évaluation rapide (Mode Démo)
 
-Pour faciliter l'évaluation du projet sans avoir à configurer une base de données locale, un environnement bac à sable (Sandbox) est disponible.
+Pour faciliter l'évaluation du projet sans configuration complexe, un environnement de démonstration est disponible.
 
 **Identifiants de démonstration :**
 *   **Compte Chef de Chantier :** `admin@demo.com` / `MotDePasse123!`
 *   **Compte Ouvrier :** `ouvrier@demo.com` / `MotDePasse123!`
 
-Si vous souhaitez faire tourner le code localement avec cette base de test, remplacez simplement les valeurs de votre fichier `.env` par les clés secrètes Supabase qui vous ont été fournies dans le document d'accompagnement du TFE.
-
 ---
 
-## 🛠️ Installation & Démarrage local (Mode Complet)
+## 🛠️ Installation & Démarrage local
 
-Si vous souhaitez déployer l'application depuis zéro avec votre propre base de données, suivez ces étapes :
+Si vous souhaitez faire tourner l'application localement, suivez ces étapes :
 
 ### 1. Prérequis
-- Node.js (v18+)
-- Un compte [Supabase](https://supabase.com/) (gratuit) pour l'authentification, la base de données PostgreSQL et le stockage (Buckets).
+- **Node.js** (v20+)
+- **PostgreSQL** (ou une instance [Supabase](https://supabase.com/))
+- **Clés API Supabase** (Authentification et Stockage des photos)
 
 ### 2. Installation
 ```bash
 # Cloner le dépôt
 git clone https://github.com/MartinStocq/suivi-chantier-app-TFE.git
-cd suivi-chantier-app
+cd suivi-chantier-app-TFE
 
 # Installer les dépendances
 npm install
 ```
 
 ### 3. Configuration de l'environnement (`.env`)
-Le fichier `.env.example` contient la structure attendue. Copiez-le :
+Copiez le fichier d'exemple et remplissez les variables nécessaires :
 ```bash
 cp .env.example .env
 ```
-Remplissez-le avec vos identifiants Supabase (disponibles dans *Project Settings > API* et *Project Settings > Database*) :
-*   `DATABASE_URL` : L'URL de connexion à la base de données PostgreSQL (Transaction pooler).
-*   `NEXT_PUBLIC_SUPABASE_URL` : L'URL publique de votre projet Supabase.
-*   `NEXT_PUBLIC_SUPABASE_ANON_KEY` : La clé publique anonyme.
+*Note : Si vous utilisez le CLI Supabase en local, la `DATABASE_URL` pointera généralement sur le port 54322.*
 
 ### 4. Initialisation de la Base de données
+Utilisez Prisma pour synchroniser le schéma et appliquer les migrations :
 ```bash
-# Pousse le schéma Prisma vers votre base de données Supabase
 npx prisma migrate dev
 ```
 
@@ -54,55 +50,45 @@ npx prisma migrate dev
 ```bash
 npm run dev
 ```
-L'application sera disponible sur [http://localhost:3000](http://localhost:3000).
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🔐 Gestion des rôles (Gatekeeping)
+## 🔐 Architecture & Sécurité
 
-La sécurité de l'application repose sur un modèle "Zero-Trust". 
+### Gestion des Rôles (RBAC)
 
-**À l'inscription (Sign Up) :** 
-N'importe qui possédant l'URL peut créer un compte. Cependant, l'application attribue **strictement et par défaut** le rôle `OUVRIER` avec un statut `approuve = false`. Le compte est bloqué par le Middleware Edge et ne peut accéder à aucune page.
-
-**Comment attribuer le rôle Chef ?**
-Le premier utilisateur (le créateur de l'entreprise) doit être promu manuellement dans la base de données :
-1. Créez un compte via l'interface web (`/register`).
-2. Ouvrez Prisma Studio pour manipuler la base locale :
-   ```bash
-   npx prisma studio
-   ```
-3. Dans la table `Utilisateur`, trouvez votre compte.
-4. Passez le champ `approuve` à `true`.
-5. Modifiez le champ `role` de `OUVRIER` à `CHEF_CHANTIER`.
-6. Enregistrez. Vous avez désormais accès au Tableau de Bord et pouvez approuver les futurs inscrits directement depuis l'interface web.
-
----
-
-## 🧪 Tests Automatisés
-
-Le projet est couvert par une suite de 77 tests automatisés (Unitaires et Intégration) utilisant Vitest et React Testing Library. Ils ne nécessitent aucune base de données pour fonctionner.
 
 ```bash
-# Lancer la suite de tests complète
+# Lancer les tests
+npx prisma studio
+```
+
+La sécurité repose sur un modèle "Zero-Trust" avec deux rôles principaux :
+*   **OUVRIER** : Accès limité aux pointages personnels et aux chantiers assignés.
+*   **CHEF_CHANTIER** : Gestion complète des chantiers, des équipes et validation des pointages.
+
+À l'inscription, tout nouvel utilisateur est bloqué par défaut (`approuve = false`) jusqu'à validation manuelle par un administrateur via **Prisma Studio** ou l'interface de gestion. ( npx prisma studio )
+
+### Automatisation Météo
+L'application intègre une surveillance automatisée via Open-Meteo. En cas de conditions critiques (gel, vent violent, fortes pluies), le statut des chantiers est automatiquement mis à jour pour garantir la sécurité des ouvriers.
+
+---
+
+## 🧪 Tests & Qualité
+
+Le projet inclut une suite complète de tests unitaires et d'intégration pour garantir la robustesse des fonctionnalités critiques (calcul des heures, synchronisation météo, notifications).
+
+```bash
+# Lancer les tests
 npm run test
 ```
 
 ---
 
-## ⚙️ Développement & Architecture Asynchrone
-
-### Synchronisation Météo (Cron Job)
-L'application intègre une "State Machine" qui suspend automatiquement les chantiers en cas de météo critique via une route API (`/api/meteo/sync`).
-*   **En production :** Cette route est appelée toutes les 4 heures par Vercel Cron. Elle exige que le header ou le paramètre corresponde au `CRON_SECRET` de votre fichier `.env`.
-*   **En développement :** Si `NODE_ENV !== 'production'`, la vérification du `CRON_SECRET` est ignorée pour faciliter vos tests manuels depuis le navigateur.
-
----
-
 ## 💻 Stack Technique
-- **Framework Front/Back** : [Next.js 16](https://nextjs.org/) (App Router, Server Actions, Edge Middleware)
-- **Base de données & Auth** : [Supabase](https://supabase.com/) (PostgreSQL managé, GoTrue, Storage)
-- **ORM** : [Prisma](https://www.prisma.io/)
-- **API Externe** : Open-Meteo (Géocodage & Forecast)
-- **Styling** : [Tailwind CSS v4](https://tailwindcss.com/)
+- **Framework** : Next.js 16 (App Router, Server Actions)
+- **Base de données** : PostgreSQL & Prisma ORM
+- **Authentification & Stockage** : Supabase
+- **Styling** : Tailwind CSS v4
 - **Tests** : Vitest & React Testing Library
