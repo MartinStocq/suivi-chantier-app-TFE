@@ -44,6 +44,22 @@ cp .env.example .env
 ```
 *Note : Si vous utilisez le CLI Supabase en local, la `DATABASE_URL` pointera généralement sur le port 54322.*
 
+### 🔑 Configuration de l'Authentification Google (Optionnel)
+
+Pour utiliser "Se connecter avec Google" en local, vous devez configurer vos propres identifiants :
+
+1.  **Google Cloud Console :**
+    *   Créez un projet sur la [Google Cloud Console](https://console.cloud.google.com/).
+    *   Configurez l'écran de consentement OAuth.
+    *   Créez des "Identifiants OAuth 2.0" (Type : Application Web).
+    *   Ajoutez `http://localhost:3000` aux **Origines JavaScript autorisées**.
+    *   Ajoutez `https://<VOTRE_ID_SUPABASE>.supabase.co/auth/v1/callback` aux **URIs de redirection autorisés** (Remplacez `<VOTRE_ID_SUPABASE>` par l'ID de votre projet Supabase).
+2.  **Dashboard Supabase :**
+    *   Allez dans **Authentication > Providers > Google**.
+    *   Activez le provider et collez votre *Client ID* et *Client Secret* obtenus sur Google Cloud.
+3.  **Fichier .env :**
+    *   Assurez-vous que vos clés `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans votre fichier `.env` correspondent bien à votre projet Supabase configuré.
+
 ### 4. Initialisation de la Base de données
 Utilisez Prisma pour synchroniser le schéma et appliquer les migrations. Cette étape va créer les tables nécessaires dans votre base de données :
 ```bash
