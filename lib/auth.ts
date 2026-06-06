@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export async function getSupabaseUser() {
   const cookieStore = await cookies()
@@ -20,6 +21,7 @@ export async function getSupabaseUser() {
 }
 
 export async function getCurrentUser() {
+  noStore()
   const supabaseUser = await getSupabaseUser()
   if (!supabaseUser) return null
 
