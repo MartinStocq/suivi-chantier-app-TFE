@@ -17,6 +17,7 @@ export default async function EquipePage({
 }) {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  if (!user.approuve) redirect('/attente-validation')
 
   const isChef = user.role === 'CHEF_CHANTIER'
   const { q: qRaw, filtre } = await searchParams

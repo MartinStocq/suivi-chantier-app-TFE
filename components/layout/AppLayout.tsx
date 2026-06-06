@@ -1,9 +1,14 @@
 import { getCurrentUser } from '@/lib/auth'
 import Sidebar from './Sidebar'
 import { LayoutProvider } from './LayoutContext'
+import { redirect } from 'next/navigation'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser()
+
+  if (user && !user.approuve) {
+    redirect('/attente-validation')
+  }
 
   return (
     <LayoutProvider>

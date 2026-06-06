@@ -24,7 +24,7 @@ export default function RegisterPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: data.user?.id, nom, email })
     })
-    router.push('/dashboard')
+    router.push('/attente-validation')
   }
 
   return (

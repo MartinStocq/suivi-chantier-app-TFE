@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 export default async function ChantiersPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  if (!user.approuve) redirect('/attente-validation')
 
   // Mise à jour automatique des statuts et de la météo
   await autoUpdateChantierStatuts()

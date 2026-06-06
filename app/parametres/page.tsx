@@ -8,6 +8,7 @@ import ProfilForm from '@/components/parametres/ProfilForm'
 export default async function ParametresPage() {
   const user = await getCurrentUser()
   if (!user) redirect('/login')
+  if (!user.approuve) redirect('/attente-validation')
 
   const utilisateur = await prisma.utilisateur.findUnique({
     where: { id: user.id },
