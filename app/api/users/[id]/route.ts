@@ -65,8 +65,20 @@ export async function DELETE(
   if (me.role !== 'CHEF_CHANTIER') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
   const { id } = await params
-  await prisma.utilisateur.delete({ where: { id } })
-  return NextResponse.json({ message: 'Utilisateur supprimé' })
+
+  try {
+    await prisma.$transaction([
+      prisma.affectationChantier.deleteMany({ where: { userId: id } }),
+      prisma.pointage.deleteMany({ where: { utilisateurId: id } }),
+      prisma.photo.deleteMany({ where: { takenById: id } }),
+      prisma.rapportExport.deleteMany({ where: { exportedById: id } }),
+      prisma.utilisateur.delete({ where: { id } })
+    ])
+    return NextResponse.json({ message: 'Utilisateur supprimé' })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ error: 'Erreur lors de la suppression' }, { status: 500 })
+  }
 }
 
 export async function PATCH(
